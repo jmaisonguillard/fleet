@@ -92,25 +92,26 @@ type ServiceProvider interface {
 
 ## Priority 3: Code Organization
 
-### ❏ 3.1 Create Validation Package
+### ✅ 3.1 Create Validation Package
 **Problem**: Validation scattered across files  
 **Solution**: Centralized validation
 
-- [ ] Create `validation/` package
-- [ ] Port conflict detection
-- [ ] Service compatibility checks
-- [ ] Configuration completeness validation
-- [ ] Pre-compose generation validation
+- [x] Create `validation/` package
+- [x] Port conflict detection with `PortValidator`
+- [x] Service compatibility checks with `CompatibilityValidator`
+- [x] Configuration completeness validation with `ConfigValidator`
+- [x] Dependency cycle detection with `DependencyValidator`
 
-### ❏ 3.2 Extract Volume Management
+### ✅ 3.2 Extract Volume Management
 **File**: `compose.go:262-287`  
 **Problem**: Volume logic mixed with service generation  
 **Solution**: Dedicated volume manager
 
-- [ ] Create `VolumeManager` type
-- [ ] Track volume requirements
-- [ ] Handle bind mounts vs named volumes
-- [ ] Validate volume configurations
+- [x] Create `VolumeManager` type
+- [x] Track volume requirements and usage
+- [x] Handle bind mounts vs named volumes
+- [x] Validate volume configurations
+- [x] Optimize by removing unused volumes
 
 ### ❏ 3.3 Improve PHP Service Configuration
 **Files**: `php_frameworks.go`, `runtime_php.go`  
@@ -183,6 +184,8 @@ type ServiceProvider interface {
 - ✅ 2.1 Create Service Provider Interface (all 5 providers implemented)
 - ✅ 2.2 Unify Shared Container Naming (SharedServiceNamer with collision detection)
 - ✅ 2.3 Centralize Environment Variable Patterns (EnvBuilder with fluent API)
+- ✅ 3.1 Create Validation Package (centralized validation logic)
+- ✅ 3.2 Extract Volume Management (VolumeManager for volume handling)
 
 ### In Progress
 - None
