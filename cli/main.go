@@ -29,6 +29,8 @@ func main() {
 		handleLogs()
 	case "init":
 		handleInit()
+	case "dns":
+		handleDNS()
 	case "version", "-v", "--version":
 		fmt.Printf("Fleet CLI v%s\n", version)
 	case "help", "-h", "--help":
@@ -51,6 +53,7 @@ func printUsage() {
 	fmt.Fprintln(w, "  restart\t Restart all services")
 	fmt.Fprintln(w, "  status, ps\t Show service status")
 	fmt.Fprintln(w, "  logs\t Show service logs")
+	fmt.Fprintln(w, "  dns\t Manage DNS service for .test domains")
 	fmt.Fprintln(w, "  init\t Create a sample fleet.toml")
 	fmt.Fprintln(w, "  version\t Show version")
 	fmt.Fprintln(w, "  help\t Show this help")
@@ -64,4 +67,6 @@ func printUsage() {
 	fmt.Println("  fleet up            # Start all services")
 	fmt.Println("  fleet up -d         # Start in background")
 	fmt.Println("  fleet logs website  # Show logs for 'website' service")
+	fmt.Println("  fleet dns start     # Start DNS service for .test domains")
+	fmt.Println("\nRun 'fleet dns help' for DNS service commands")
 }
