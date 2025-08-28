@@ -79,3 +79,32 @@ down:
 
 status:
 	@./$(BUILD_DIR)/$(BINARY_NAME) status
+
+# DNS Setup
+dns-setup:
+	@echo "🌐 Setting up Fleet DNS for .test domain..."
+	@./scripts/setup-dns.sh
+	@echo "✅ DNS setup complete"
+
+dns-remove:
+	@echo "🗑️ Removing Fleet DNS configuration..."
+	@./scripts/setup-dns.sh remove
+	@echo "✅ DNS configuration removed"
+
+dns-start:
+	@echo "🚀 Starting dnsmasq container..."
+	@docker-compose -f templates/compose/docker-compose.dnsmasq.yml up -d
+	@echo "✅ Dnsmasq started"
+
+dns-stop:
+	@echo "🛑 Stopping dnsmasq container..."
+	@docker-compose -f templates/compose/docker-compose.dnsmasq.yml down
+	@echo "✅ Dnsmasq stopped"
+
+dns-test:
+	@echo "🧪 Testing DNS configuration..."
+	@./scripts/test-dns.sh
+
+dns-logs:
+	@echo "📋 Showing dnsmasq logs..."
+	@docker logs fleet-dnsmasq -f

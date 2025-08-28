@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  dnsmasq:
+    build:
+      context: ../..
+      dockerfile: templates/dockerfiles/Dockerfile.dnsmasq
+    container_name: fleet-dnsmasq
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:53:53/tcp"
+      - "127.0.0.1:53:53/udp"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./config/services/dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ./config/services/hosts.test:/etc/hosts.test:ro
+    networks:
+      fleet-network:
+        ipv4_address: 172.20.0.2
+
+networks:
+  fleet-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
