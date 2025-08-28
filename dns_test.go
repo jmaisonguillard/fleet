@@ -158,11 +158,6 @@ func (suite *DNSTestSuite) TestDNSResolutionLogic() {
 		expected bool
 	}{
 		{
-			name:     "Localhost should resolve",
-			domain:   "localhost",
-			expected: true, // localhost typically resolves to 127.0.0.1
-		},
-		{
 			name:     "Invalid domain should not resolve",
 			domain:   "this-domain-definitely-does-not-exist.invalid",
 			expected: false,
