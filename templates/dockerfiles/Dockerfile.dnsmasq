@@ -3,9 +3,6 @@ FROM alpine:latest
 # Install dnsmasq
 RUN apk --no-cache add dnsmasq
 
-# Copy configuration
-COPY config/services/dnsmasq.conf /etc/dnsmasq.conf
-
 # Create directory for additional hosts
 RUN mkdir -p /etc/dnsmasq.d
 

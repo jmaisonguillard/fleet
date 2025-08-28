@@ -13,16 +13,16 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./config/services/dnsmasq.conf:/etc/dnsmasq.conf:ro
-      - ./config/services/hosts.test:/etc/hosts.test:ro
+      - ../../config/services/dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ../../config/services/hosts.test:/etc/hosts.test:ro
     networks:
       fleet-network:
-        ipv4_address: 172.20.0.2
+        ipv4_address: 172.30.0.2
 
 networks:
   fleet-network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
-          gateway: 172.20.0.1
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
