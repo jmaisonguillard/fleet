@@ -1,0 +1,62 @@
+# Complete application stack with search, database, and cache
+project = "fullstack-search"
+
+# Main web application with all services
+[[services]]
+name = "webapp"
+image = "node:20"
+port = 3000
+domain = "app.test"
+folder = "app"
+database = "postgres:15"
+database_name = "app_db"
+database_user = "app_user"
+database_password = "db_pass"
+cache = "redis:7.2"
+cache_password = "redis_pass"
+cache_max_memory = "512m"
+search = "meilisearch:1.6"
+search_master_key = "search_master_key"
+environment = { NODE_ENV = "production" }
+command = "npm start"
+
+# Background worker for search indexing
+[[services]]
+name = "search-indexer"
+image = "python:3.11"
+folder = "workers/indexer"
+database = "postgres:15"     # Shares database with webapp
+cache = "redis:7.2"          # Shares cache with webapp
+cache_password = "redis_pass"
+search = "meilisearch:1.6"   # Shares search with webapp
+search_master_key = "search_master_key"
+command = "python indexer.py"
+needs = ["webapp"]
+
+# API service with instant search
+[[services]]
+name = "api"
+image = "golang:1.21"
+port = 8080
+folder = "api"
+database = "postgres:15"     # Shares database
+cache = "memcached:1.6"      # Different cache system
+cache_max_memory = "256m"
+search = "typesense:27.1"    # Different search engine for instant search
+search_api_key = "typesense_api_key"
+command = "go run main.go"
+
+# Admin dashboard with its own search
+[[services]]
+name = "admin"
+image = "php:8.2-apache"
+port = 8081
+domain = "admin.test"
+folder = "admin"
+runtime = "php:8.2"
+framework = "laravel"
+database = "postgres:15"     # Shares database
+cache = "redis:7.2"          # Shares Redis cache
+cache_password = "redis_pass"
+search = "meilisearch:1.5"   # Different Meilisearch version for admin
+search_master_key = "admin_search_key"

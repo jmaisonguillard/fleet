@@ -1,0 +1,20 @@
+# Meilisearch search service configuration
+project = "search-app"
+
+[[services]]
+name = "api"
+image = "node:20"
+port = 3000
+folder = "api"
+search = "meilisearch:1.6"
+search_master_key = "secure_master_key_for_production"
+environment = { NODE_ENV = "production" }
+command = "npm start"
+
+[[services]]
+name = "indexer"
+image = "python:3.11"
+folder = "indexer"
+search = "meilisearch:1.6"  # Shares same Meilisearch instance
+search_master_key = "secure_master_key_for_production"
+command = "python indexer.py"
