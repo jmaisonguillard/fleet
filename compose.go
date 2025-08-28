@@ -117,8 +117,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 					framework = detectPHPFramework(svc.Folder)
 				}
 				
-				// Generate and mount PHP nginx config
-				configPath, err := writeNginxPHPConfig(svc.Name, framework)
+				// Parse PHP version from runtime
+				_, phpVersion := parsePHPRuntime(svc.Runtime)
+				
+				// Generate and mount PHP nginx config with version
+				configPath, err := writeNginxPHPConfigWithVersion(svc.Name, framework, phpVersion)
 				if err == nil {
 					absPath, _ := filepath.Abs(configPath)
 					service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/etc/nginx/conf.d/default.conf:ro", absPath))
@@ -171,6 +174,21 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		// Handle dependencies
 		if len(svc.Needs) > 0 {
 			service.DependsOn = svc.Needs
+		}
+		
+		// Add PHP-FPM dependency for nginx with PHP runtime
+		if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
+			phpServiceName := fmt.Sprintf("%s-php", svc.Name)
+			found := false
+			for _, dep := range service.DependsOn {
+				if dep == phpServiceName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				service.DependsOn = append(service.DependsOn, phpServiceName)
+			}
 		}
 
 		// Handle command

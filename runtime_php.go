@@ -8,6 +8,16 @@ import (
 	"strings"
 )
 
+// contains checks if a string slice contains a string
+func contains(slice []string, str string) bool {
+	for _, v := range slice {
+		if v == str {
+			return true
+		}
+	}
+	return false
+}
+
 // PHPVersion represents a PHP version configuration
 type PHPVersion struct {
 	Version string
@@ -69,6 +79,8 @@ func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
 		return
 	}
 
+	// For now, create per-service PHP containers to avoid volume conflicts
+	// Future optimization: use shared containers with different document roots
 	phpServiceName := fmt.Sprintf("%s-php", svc.Name)
 	phpImage := getPHPImage(version)
 
@@ -85,8 +97,9 @@ func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
 	}
 
 	// Mount the same folder as the nginx service
+	// For shared PHP containers, we mount the current service's folder
+	// Each nginx service will have its own config pointing to this shared PHP container
 	if svc.Folder != "" {
-		// PHP files need to be in the same location as nginx expects
 		phpService.Volumes = append(phpService.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
 	}
 	
@@ -138,8 +151,22 @@ func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
 
 // generateNginxPHPConfig generates nginx configuration for PHP-FPM
 func generateNginxPHPConfig(serviceName string) string {
+	// For backward compatibility, we still use service-specific PHP name
+	// This will be updated when calling from compose.go with version info
 	phpServiceName := fmt.Sprintf("%s-php", serviceName)
 	
+	return generateNginxPHPConfigWithService(phpServiceName)
+}
+
+// generateNginxPHPConfigWithVersion generates nginx config for specific PHP version
+func generateNginxPHPConfigWithVersion(serviceName, phpVersion string) string {
+	// Using per-service PHP containers for now
+	phpServiceName := fmt.Sprintf("%s-php", serviceName)
+	return generateNginxPHPConfigWithService(phpServiceName)
+}
+
+// generateNginxPHPConfigWithService generates nginx config with specific PHP service
+func generateNginxPHPConfigWithService(phpServiceName string) string {
 	return fmt.Sprintf(`server {
     listen 80;
     server_name _;
@@ -188,12 +215,19 @@ func generateNginxPHPConfig(serviceName string) string {
 
 // writeNginxPHPConfig writes the nginx configuration for PHP
 func writeNginxPHPConfig(serviceName string, framework string) (string, error) {
+	return writeNginxPHPConfigWithVersion(serviceName, framework, "")
+}
+
+// writeNginxPHPConfigWithVersion writes nginx config with specific PHP version
+func writeNginxPHPConfigWithVersion(serviceName, framework, phpVersion string) (string, error) {
 	configPath := filepath.Join(".fleet", fmt.Sprintf("%s-nginx.conf", serviceName))
 	
 	// Get framework-specific config or fallback to generic
 	var config string
 	if framework != "" {
-		config = getNginxConfigForFramework(serviceName, framework)
+		config = getNginxConfigForFrameworkWithVersion(serviceName, framework, phpVersion)
+	} else if phpVersion != "" {
+		config = generateNginxPHPConfigWithVersion(serviceName, phpVersion)
 	} else {
 		config = generateNginxPHPConfig(serviceName)
 	}

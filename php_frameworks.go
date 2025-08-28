@@ -92,6 +92,12 @@ func fileExists(path string) bool {
 
 // getNginxConfigForFramework returns the appropriate nginx configuration for a PHP framework
 func getNginxConfigForFramework(serviceName, framework string) string {
+	return getNginxConfigForFrameworkWithVersion(serviceName, framework, "")
+}
+
+// getNginxConfigForFrameworkWithVersion returns nginx config for framework with specific PHP version
+func getNginxConfigForFrameworkWithVersion(serviceName, framework, phpVersion string) string {
+	// Using per-service PHP containers for now
 	phpServiceName := fmt.Sprintf("%s-php", serviceName)
 	
 	switch strings.ToLower(framework) {

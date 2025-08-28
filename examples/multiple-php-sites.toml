@@ -1,0 +1,27 @@
+project = "multi-php"
+
+# First Laravel site using PHP 8.4
+[[services]]
+name = "site1"
+image = "nginx:alpine"
+runtime = "php:8.4"
+framework = "laravel"
+folder = "./site1"
+domain = "site1.test"
+
+# Second WordPress site using PHP 8.4 (would share PHP container if we had implemented it)
+[[services]]
+name = "site2"
+image = "nginx:alpine"
+runtime = "php:8.4"
+framework = "wordpress"
+folder = "./site2"
+domain = "site2.test"
+
+# Third site using older PHP 7.4
+[[services]]
+name = "legacy"
+image = "nginx:alpine"
+runtime = "php:7.4"
+folder = "./legacy"
+domain = "legacy.test"
