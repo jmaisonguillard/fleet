@@ -1,0 +1,23 @@
+# MinIO S3-compatible storage configuration
+project = "s3-app"
+
+[[services]]
+name = "api"
+image = "node:20"
+port = 3000
+folder = "api"
+compat = "minio:2024"
+compat_access_key = "myaccesskey"
+compat_secret_key = "mysecretkey"
+compat_region = "us-east-1"
+environment = { NODE_ENV = "production" }
+command = "npm start"
+
+[[services]]
+name = "media-processor"
+image = "python:3.11"
+folder = "processor"
+compat = "minio:2024"  # Shares same MinIO instance
+compat_access_key = "myaccesskey"
+compat_secret_key = "mysecretkey"
+command = "python process.py"

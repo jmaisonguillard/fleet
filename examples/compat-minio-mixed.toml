@@ -1,0 +1,36 @@
+# Mixed MinIO versions for compatibility testing
+project = "minio-versions"
+
+# Service using MinIO 2024
+[[services]]
+name = "current-app"
+image = "node:20"
+port = 3001
+folder = "current"
+compat = "minio:2024"
+compat_access_key = "current_access"
+compat_secret_key = "current_secret"
+compat_region = "us-west-2"
+command = "npm start"
+
+# Service using older MinIO 2023
+[[services]]
+name = "legacy-app"
+image = "python:3.9"
+port = 3002
+folder = "legacy"
+compat = "minio:2023"  # Different version - gets own container
+compat_access_key = "legacy_access"
+compat_secret_key = "legacy_secret"
+command = "python app.py"
+
+# Service sharing MinIO 2024 with current-app
+[[services]]
+name = "backup-service"
+image = "alpine:3.19"
+folder = "backup"
+compat = "minio:2024"  # Same version as current-app - shares container
+compat_access_key = "current_access"
+compat_secret_key = "current_secret"
+compat_region = "us-west-2"
+command = "sh backup.sh"

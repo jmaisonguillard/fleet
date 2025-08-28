@@ -37,6 +37,10 @@ type Service struct {
 	Search          string        `toml:"search,omitempty" yaml:"search,omitempty" json:"search,omitempty"`
 	SearchApiKey    string        `toml:"search_api_key,omitempty" yaml:"search_api_key,omitempty" json:"search_api_key,omitempty"`
 	SearchMasterKey string        `toml:"search_master_key,omitempty" yaml:"search_master_key,omitempty" json:"search_master_key,omitempty"`
+	Compat          string        `toml:"compat,omitempty" yaml:"compat,omitempty" json:"compat,omitempty"`
+	CompatAccessKey string        `toml:"compat_access_key,omitempty" yaml:"compat_access_key,omitempty" json:"compat_access_key,omitempty"`
+	CompatSecretKey string        `toml:"compat_secret_key,omitempty" yaml:"compat_secret_key,omitempty" json:"compat_secret_key,omitempty"`
+	CompatRegion    string        `toml:"compat_region,omitempty" yaml:"compat_region,omitempty" json:"compat_region,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`
