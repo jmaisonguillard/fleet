@@ -107,4 +107,4 @@ dns-test:
 
 dns-logs:
 	@echo "📋 Showing dnsmasq logs..."
-	@docker logs fleet-dnsmasq -f
+	@docker logs dnsmasq -f

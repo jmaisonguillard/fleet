@@ -16,7 +16,7 @@ echo "===================="
 
 # Check if dnsmasq container is running
 echo -e "\n${YELLOW}Checking dnsmasq container status...${NC}"
-if docker ps | grep -q fleet-dnsmasq; then
+if docker ps | grep -q "dnsmasq"; then
     echo -e "${GREEN}✓ Dnsmasq container is running${NC}"
 else
     echo -e "${RED}✗ Dnsmasq container is not running${NC}"
@@ -66,7 +66,7 @@ done
 
 # Check container logs for recent queries
 echo -e "\n${YELLOW}Recent DNS queries (last 10 lines):${NC}"
-docker logs fleet-dnsmasq --tail 10 2>&1 | grep -E "query|reply" || echo "No recent queries found"
+docker logs dnsmasq --tail 10 2>&1 | grep -E "query|reply" || echo "No recent queries found"
 
 echo -e "\n${GREEN}Test complete!${NC}"
 echo -e "\nTo add custom .test domains:"

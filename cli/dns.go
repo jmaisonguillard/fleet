@@ -156,7 +156,7 @@ func handleDNSStatus() {
 	fmt.Println("====================")
 
 	// Check if container is running
-	args := []string{"ps", "--filter", "name=fleet-dnsmasq", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"}
+	args := []string{"ps", "--filter", "name=dnsmasq", "--format", "table {{.Names}}\t{{.Status}}\t{{.Ports}}"}
 	
 	cmd := exec.Command("docker", args...)
 	output, err := cmd.CombinedOutput()
@@ -168,7 +168,7 @@ func handleDNSStatus() {
 	}
 
 	outputStr := string(output)
-	if !strings.Contains(outputStr, "fleet-dnsmasq") {
+	if !strings.Contains(outputStr, "dnsmasq") {
 		fmt.Println("❌ DNS service is not running")
 		fmt.Println("   Run 'fleet dns start' to start the service")
 		return
@@ -180,7 +180,7 @@ func handleDNSStatus() {
 
 	// Show recent queries
 	fmt.Println("\nRecent DNS queries (last 5):")
-	logsArgs := []string{"logs", "fleet-dnsmasq", "--tail", "20"}
+	logsArgs := []string{"logs", "dnsmasq", "--tail", "20"}
 	logsCmd := exec.Command("docker", logsArgs...)
 	logsOutput, _ := logsCmd.CombinedOutput()
 	
@@ -204,7 +204,7 @@ func handleDNSTest() {
 	fmt.Println("================================")
 
 	// Check if container is running
-	args := []string{"ps", "-q", "--filter", "name=fleet-dnsmasq"}
+	args := []string{"ps", "-q", "--filter", "name=dnsmasq"}
 	cmd := exec.Command("docker", args...)
 	output, err := cmd.CombinedOutput()
 	
@@ -265,7 +265,7 @@ func handleDNSLogs() {
 	fmt.Println("📋 Dnsmasq logs:")
 	fmt.Println("================")
 
-	args := []string{"logs", "fleet-dnsmasq", "--tail", *tail}
+	args := []string{"logs", "dnsmasq", "--tail", *tail}
 	
 	if *follow {
 		args = append(args, "-f")

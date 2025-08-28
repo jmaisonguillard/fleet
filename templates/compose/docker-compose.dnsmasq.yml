@@ -1,9 +1,11 @@
+name: fleet
+
 services:
   dnsmasq:
     build:
       context: ../..
       dockerfile: templates/dockerfiles/Dockerfile.dnsmasq
-    container_name: fleet-dnsmasq
+    container_name: dnsmasq
     restart: unless-stopped
     ports:
       - "127.0.0.1:53:53/tcp"
