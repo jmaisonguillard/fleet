@@ -1,0 +1,201 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+type DockerCompose struct {
+	Version  string                    `yaml:"version"`
+	Services map[string]DockerService  `yaml:"services"`
+	Networks map[string]DockerNetwork  `yaml:"networks,omitempty"`
+	Volumes  map[string]DockerVolume   `yaml:"volumes,omitempty"`
+}
+
+type DockerService struct {
+	Image       string            `yaml:"image,omitempty"`
+	Build       string            `yaml:"build,omitempty"`
+	Ports       []string          `yaml:"ports,omitempty"`
+	Volumes     []string          `yaml:"volumes,omitempty"`
+	Environment map[string]string `yaml:"environment,omitempty"`
+	Networks    []string          `yaml:"networks,omitempty"`
+	Restart     string            `yaml:"restart,omitempty"`
+	DependsOn   []string          `yaml:"depends_on,omitempty"`
+	Command     string            `yaml:"command,omitempty"`
+	HealthCheck *HealthCheckYAML  `yaml:"healthcheck,omitempty"`
+}
+
+type HealthCheckYAML struct {
+	Test     []string `yaml:"test,omitempty"`
+	Interval string   `yaml:"interval,omitempty"`
+	Timeout  string   `yaml:"timeout,omitempty"`
+	Retries  int      `yaml:"retries,omitempty"`
+}
+
+type DockerNetwork struct {
+	Driver string                 `yaml:"driver"`
+	IPAM   *DockerNetworkIPAM     `yaml:"ipam,omitempty"`
+}
+
+type DockerNetworkIPAM struct {
+	Config []DockerNetworkIPAMConfig `yaml:"config,omitempty"`
+}
+
+type DockerNetworkIPAMConfig struct {
+	Subnet string `yaml:"subnet,omitempty"`
+}
+
+type DockerVolume struct {
+	Driver string `yaml:"driver"`
+}
+
+func generateDockerCompose(config *Config) *DockerCompose {
+	compose := &DockerCompose{
+		Version:  "3.8",
+		Services: make(map[string]DockerService),
+		Networks: map[string]DockerNetwork{
+			"fleet-network": {
+				Driver: "bridge",
+				IPAM: &DockerNetworkIPAM{
+					Config: []DockerNetworkIPAMConfig{
+						{Subnet: "172.28.0.0/16"},
+					},
+				},
+			},
+		},
+		Volumes: make(map[string]DockerVolume),
+	}
+
+	// Track which volumes need to be created
+	volumesNeeded := make(map[string]bool)
+
+	for _, svc := range config.Services {
+		service := DockerService{
+			Networks: []string{"fleet-network"},
+			Restart:  "unless-stopped",
+		}
+
+		// Handle image or build
+		if svc.Image != "" {
+			service.Image = svc.Image
+		} else if svc.Build != "" {
+			service.Build = svc.Build
+		}
+
+		// Handle ports
+		if svc.Port > 0 {
+			service.Ports = []string{fmt.Sprintf("%d:%d", svc.Port, svc.Port)}
+		} else if len(svc.Ports) > 0 {
+			service.Ports = svc.Ports
+		}
+
+		// Handle volumes
+		if svc.Folder != "" {
+			// Map folder to container's /app directory
+			service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/app", svc.Folder))
+		}
+
+		// Handle named volumes
+		for _, vol := range svc.Volumes {
+			service.Volumes = append(service.Volumes, vol)
+			// If it's a named volume (not a bind mount), track it
+			if !strings.Contains(vol, "/") && !strings.Contains(vol, ".") {
+				volName := strings.Split(vol, ":")[0]
+				volumesNeeded[volName] = true
+			}
+		}
+
+		// Handle environment variables
+		if len(svc.Environment) > 0 {
+			service.Environment = svc.Environment
+		}
+
+		// Handle special password field for databases
+		if svc.Password != "" {
+			if service.Environment == nil {
+				service.Environment = make(map[string]string)
+			}
+			
+			// Auto-detect database type and set appropriate password env var
+			if strings.Contains(svc.Image, "postgres") {
+				service.Environment["POSTGRES_PASSWORD"] = svc.Password
+				service.Environment["POSTGRES_DB"] = config.Project
+			} else if strings.Contains(svc.Image, "mysql") || strings.Contains(svc.Image, "mariadb") {
+				service.Environment["MYSQL_ROOT_PASSWORD"] = svc.Password
+				service.Environment["MYSQL_DATABASE"] = config.Project
+			} else if strings.Contains(svc.Image, "mongo") {
+				service.Environment["MONGO_INITDB_ROOT_USERNAME"] = "root"
+				service.Environment["MONGO_INITDB_ROOT_PASSWORD"] = svc.Password
+			} else if strings.Contains(svc.Image, "redis") {
+				service.Command = fmt.Sprintf("redis-server --requirepass %s", svc.Password)
+			}
+		}
+
+		// Handle dependencies
+		if len(svc.Needs) > 0 {
+			service.DependsOn = svc.Needs
+		}
+
+		// Handle command
+		if svc.Command != "" {
+			service.Command = svc.Command
+		}
+
+		// Handle health check
+		if svc.HealthCheck.Test != "" {
+			service.HealthCheck = &HealthCheckYAML{
+				Test:     strings.Split(svc.HealthCheck.Test, " "),
+				Interval: svc.HealthCheck.Interval,
+				Timeout:  svc.HealthCheck.Timeout,
+				Retries:  svc.HealthCheck.Retries,
+			}
+			
+			// Set defaults if not specified
+			if service.HealthCheck.Interval == "" {
+				service.HealthCheck.Interval = "30s"
+			}
+			if service.HealthCheck.Timeout == "" {
+				service.HealthCheck.Timeout = "10s"
+			}
+			if service.HealthCheck.Retries == 0 {
+				service.HealthCheck.Retries = 3
+			}
+		}
+
+		compose.Services[svc.Name] = service
+	}
+
+	// Create volume definitions
+	for volName := range volumesNeeded {
+		compose.Volumes[volName] = DockerVolume{
+			Driver: "local",
+		}
+	}
+
+	// If no volumes needed, remove the volumes section
+	if len(compose.Volumes) == 0 {
+		compose.Volumes = nil
+	}
+
+	return compose
+}
+
+func writeDockerCompose(compose *DockerCompose, filename string) error {
+	data, err := yaml.Marshal(compose)
+	if err != nil {
+		return fmt.Errorf("failed to marshal docker-compose: %w", err)
+	}
+
+	// Add header comment
+	header := "# Generated by Fleet CLI - DO NOT EDIT\n# Edit fleet.toml instead and regenerate\n\n"
+	data = append([]byte(header), data...)
+
+	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("failed to write docker-compose.yml: %w", err)
+	}
+
+	return nil
+}
