@@ -45,6 +45,21 @@ func handleUp() {
 		log.Fatalf("❌ Error writing docker-compose.yml: %v", err)
 	}
 
+	// Update hosts file with service domains
+	if shouldAddNginxProxy(config) {
+		fmt.Println("📝 Updating hosts file with service domains...")
+		if err := updateHostsFileWithDomains(config); err != nil {
+			fmt.Printf("⚠️  Warning: failed to update hosts file: %v\n", err)
+			fmt.Println("   You may need to run with sudo or update hosts file manually")
+		} else {
+			for _, svc := range config.Services {
+				if domain := getDomainForService(&svc); domain != "" {
+					fmt.Printf("   Added domain: %s\n", domain)
+				}
+			}
+		}
+	}
+
 	args := []string{"compose", "-f", composeFile, "up"}
 	if *detach {
 		args = append(args, "-d")
@@ -95,6 +110,13 @@ func handleDown() {
 
 	if err := runDocker(args); err != nil {
 		log.Fatalf("❌ Error stopping services: %v", err)
+	}
+
+	// Remove service domains from hosts file
+	if shouldAddNginxProxy(config) {
+		if err := removeDomainsFromHostsFile(); err != nil {
+			fmt.Printf("⚠️  Warning: failed to clean hosts file: %v\n", err)
+		}
 	}
 
 	fmt.Println("✅ Services stopped")

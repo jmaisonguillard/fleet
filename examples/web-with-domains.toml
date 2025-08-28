@@ -1,0 +1,43 @@
+# Example Fleet configuration with automatic domain support
+project = "myapp"
+
+# Frontend with custom domain
+[[services]]
+name = "frontend"
+image = "nginx:alpine"
+port = 80
+domain = "myapp.test"
+folder = "./frontend"
+
+# API service - auto-generates api.test
+[[services]]
+name = "api"
+image = "node:18-alpine"
+port = 3000
+command = "npm start"
+folder = "./api"
+[services.env]
+NODE_ENV = "development"
+DATABASE_URL = "postgresql://postgres:secret@database:5432/myapp"
+
+# Admin panel with custom subdomain
+[[services]]
+name = "admin"
+image = "nginx:alpine"
+port = 80
+domain = "admin.myapp.test"
+folder = "./admin"
+
+# Database (no domain needed)
+[[services]]
+name = "database"
+image = "postgres:15"
+port = 5432
+password = "secret"
+volumes = ["db-data:/var/lib/postgresql/data"]
+
+# Redis cache (no domain needed)
+[[services]]
+name = "redis"
+image = "redis:7-alpine"
+port = 6379

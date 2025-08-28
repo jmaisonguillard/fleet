@@ -212,10 +212,12 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeMultipleServices() {
 
 	compose := generateDockerCompose(&config)
 	
-	suite.Len(compose.Services, 3)
+	// Now expects 4 services: web, api, database, and nginx-proxy (added automatically because services have ports)
+	suite.Len(compose.Services, 4)
 	suite.Contains(compose.Services, "web")
 	suite.Contains(compose.Services, "api")
 	suite.Contains(compose.Services, "database")
+	suite.Contains(compose.Services, "nginx-proxy")
 }
 
 func (suite *ComposeTestSuite) TestWriteDockerComposeYAML() {

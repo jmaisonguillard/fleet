@@ -21,6 +21,7 @@ type Service struct {
 	Build       string            `toml:"build,omitempty" yaml:"build,omitempty" json:"build,omitempty"`
 	Port        int               `toml:"port,omitempty" yaml:"port,omitempty" json:"port,omitempty"`
 	Ports       []string          `toml:"ports,omitempty" yaml:"ports,omitempty" json:"ports,omitempty"`
+	Domain      string            `toml:"domain,omitempty" yaml:"domain,omitempty" json:"domain,omitempty"`
 	Folder      string            `toml:"folder,omitempty" yaml:"folder,omitempty" json:"folder,omitempty"`
 	Password    string            `toml:"password,omitempty" yaml:"password,omitempty" json:"password,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`

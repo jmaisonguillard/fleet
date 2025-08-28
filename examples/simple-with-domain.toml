@@ -1,0 +1,17 @@
+# Simple example showing automatic domain generation
+project = "simple-app"
+
+# This service will be accessible at http://web.test
+[[services]]
+name = "web"
+image = "nginx:alpine"
+port = 80
+folder = "./website"
+
+# This service will be accessible at http://hello.test (custom domain)
+[[services]]
+name = "app"
+image = "node:18-alpine"
+port = 3000
+domain = "hello.test"
+folder = "./app"

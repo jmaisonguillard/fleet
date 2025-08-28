@@ -113,10 +113,12 @@ func (suite *CommandsTestSuite) TestGenerateDockerComposeIntegration() {
 	
 	// Verify compose structure
 	suite.Equal("3.8", compose.Version)
-	suite.Len(compose.Services, 3)
+	// Now expects 4 services: web, api, database, and nginx-proxy (added automatically)
+	suite.Len(compose.Services, 4)
 	suite.Contains(compose.Services, "web")
 	suite.Contains(compose.Services, "api")
 	suite.Contains(compose.Services, "database")
+	suite.Contains(compose.Services, "nginx-proxy")
 	
 	// Check network - implementation always creates "fleet-network"
 	suite.Contains(compose.Networks, "fleet-network")

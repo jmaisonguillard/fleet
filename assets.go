@@ -10,7 +10,7 @@ import (
 var scriptsFS embed.FS
 
 //go:embed templates/compose/docker-compose.dnsmasq.yml
-//go:embed templates/dockerfiles/Dockerfile.dnsmasq
+//go:embed templates/dockerfiles/Dockerfile.dnsmasq templates/dockerfiles/Dockerfile.nginx templates/nginx/nginx.conf.tmpl
 var templatesFS embed.FS
 
 //go:embed config/services/dnsmasq.conf config/services/hosts.test

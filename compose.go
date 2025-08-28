@@ -180,6 +180,9 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		compose.Volumes = nil
 	}
 
+	// Add nginx proxy if needed
+	addNginxProxyToCompose(compose, config)
+
 	return compose
 }
 

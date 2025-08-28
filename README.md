@@ -52,12 +52,20 @@ Fleet uses simple TOML configuration (also supports YAML/JSON):
 ```toml
 project = "my-app"
 
-# Simple web server
+# Simple web server with custom domain
 [[services]]
 name = "website"
 image = "nginx"
 port = 80
+domain = "myapp.test"  # Optional - defaults to website.test
 folder = "./my-website"  # Maps to container's /app
+
+# API service with auto-generated domain
+[[services]]
+name = "api"
+image = "node:18"
+port = 3000
+# Domain auto-generates as api.test
 
 # Database with password
 [[services]]
@@ -66,6 +74,15 @@ image = "postgres"
 port = 5432
 password = "secret"  # Auto-configures based on image
 ```
+
+### Domain Support
+
+Fleet automatically sets up domains for your services:
+- Services with ports get a `.test` domain (e.g., `api.test`)
+- Custom domains via the `domain` field
+- Automatic nginx reverse proxy for routing
+- Hosts file updated automatically
+- Visit `http://myapp.test` instead of `localhost:8080`
 
 ## Commands
 
@@ -91,6 +108,7 @@ project = "my-blog"
 name = "wordpress"
 image = "wordpress"
 port = 8080
+domain = "blog.test"  # Access at http://blog.test
 [services.env]
 WORDPRESS_DB_HOST = "mysql"
 WORDPRESS_DB_PASSWORD = "secret"
@@ -101,6 +119,8 @@ image = "mysql:5.7"
 password = "secret"
 volumes = ["db-data:/var/lib/mysql"]
 ```
+
+Visit your blog at http://blog.test after running `fleet up`!
 
 ### Node.js + Redis + PostgreSQL
 
@@ -159,6 +179,7 @@ make clean
 ## Features
 
 - ✅ Multiple service orchestration
+- ✅ Automatic .test domains with nginx proxy
 - ✅ Auto-detects database passwords
 - ✅ Volume management
 - ✅ Network isolation
@@ -166,6 +187,7 @@ make clean
 - ✅ Health checks
 - ✅ Build from Dockerfile
 - ✅ Environment variables
+- ✅ Hosts file management
 - ✅ Cross-platform (Linux, macOS, Windows)
 
 ## License
