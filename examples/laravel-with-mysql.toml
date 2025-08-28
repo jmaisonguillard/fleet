@@ -1,0 +1,15 @@
+project = "laravel-app"
+
+# Laravel application with MySQL database
+[[services]]
+name = "web"
+image = "nginx:alpine"
+runtime = "php:8.4"
+framework = "laravel"
+folder = "./app"
+domain = "laravel.test"
+database = "mysql:8.0"
+database_name = "laravel_db"
+database_user = "laravel"
+database_password = "secure_password123"
+database_root_password = "root_password123"

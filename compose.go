@@ -223,12 +223,33 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
 			addPHPFPMService(compose, &svc, config)
 		}
+		
+		// Add database service if specified
+		if svc.Database != "" {
+			addDatabaseService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions
 	for volName := range volumesNeeded {
 		compose.Volumes[volName] = DockerVolume{
 			Driver: "local",
+		}
+	}
+	
+	// Add database volumes
+	for _, service := range compose.Services {
+		for _, volume := range service.Volumes {
+			// Check if it's a named volume (contains : but doesn't start with . or /)
+			if strings.Contains(volume, ":") {
+				parts := strings.Split(volume, ":")
+				volName := parts[0]
+				if !strings.HasPrefix(volName, ".") && !strings.HasPrefix(volName, "/") && strings.HasSuffix(volName, "-data") {
+					compose.Volumes[volName] = DockerVolume{
+						Driver: "local",
+					}
+				}
+			}
 		}
 	}
 

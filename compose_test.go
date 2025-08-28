@@ -88,10 +88,11 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeWithVolumes() {
 	suite.Contains(dbService.Volumes, "db-data:/var/lib/postgresql/data")
 	suite.Contains(dbService.Volumes, "./init.sql:/docker-entrypoint-initdb.d/init.sql")
 	
-	// Check named volume is NOT defined
-	// According to implementation line 105, volumes with "/" or "." ANYWHERE are not considered named volumes
-	// "db-data:/var/lib/postgresql/data" contains "/" so it won't be added to compose.Volumes
-	suite.Nil(compose.Volumes)
+	// Check named volume IS defined - database volumes are automatically created
+	// The new database service implementation detects and creates volumes ending with "-data"
+	suite.NotNil(compose.Volumes)
+	_, exists := compose.Volumes["db-data"]
+	suite.True(exists, "db-data volume should be defined")
 }
 
 func (suite *ComposeTestSuite) TestGenerateDockerComposeWithEnvironment() {

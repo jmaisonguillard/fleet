@@ -26,6 +26,11 @@ type Service struct {
 	Framework   string            `toml:"framework,omitempty" yaml:"framework,omitempty" json:"framework,omitempty"`
 	Folder      string            `toml:"folder,omitempty" yaml:"folder,omitempty" json:"folder,omitempty"`
 	Password    string            `toml:"password,omitempty" yaml:"password,omitempty" json:"password,omitempty"`
+	Database    string            `toml:"database,omitempty" yaml:"database,omitempty" json:"database,omitempty"`
+	DatabaseName string           `toml:"database_name,omitempty" yaml:"database_name,omitempty" json:"database_name,omitempty"`
+	DatabaseUser string           `toml:"database_user,omitempty" yaml:"database_user,omitempty" json:"database_user,omitempty"`
+	DatabasePassword string       `toml:"database_password,omitempty" yaml:"database_password,omitempty" json:"database_password,omitempty"`
+	DatabaseRootPassword string   `toml:"database_root_password,omitempty" yaml:"database_root_password,omitempty" json:"database_root_password,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`

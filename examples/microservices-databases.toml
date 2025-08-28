@@ -1,0 +1,54 @@
+project = "microservices"
+
+# Multiple microservices with different databases
+[[services]]
+name = "users-api"
+image = "node:18-alpine"
+port = 3001
+domain = "users.test"
+database = "postgres:15"
+database_name = "users"
+database_user = "userservice"
+database_password = "userpass123"
+
+[[services]]
+name = "products-api"
+image = "python:3.11-slim"
+port = 3002
+domain = "products.test"
+database = "mongodb:6.0"
+database_name = "products"
+database_user = "productservice"
+database_password = "productpass123"
+
+[[services]]
+name = "orders-api"
+image = "node:18-alpine"
+port = 3003
+domain = "orders.test"
+database = "mysql:8.0"
+database_name = "orders"
+database_user = "orderservice"
+database_password = "orderpass123"
+
+# Another service using the same MySQL 8.0 - will share container
+[[services]]
+name = "inventory-api"
+image = "node:18-alpine"
+port = 3004
+domain = "inventory.test"
+database = "mysql:8.0"
+database_name = "inventory"
+database_user = "inventoryservice"
+database_password = "inventorypass123"
+
+# MariaDB service
+[[services]]
+name = "analytics-api"
+image = "python:3.11-slim"
+port = 3005
+domain = "analytics.test"
+database = "mariadb:10.11"
+database_name = "analytics"
+database_user = "analyticsservice"
+database_password = "analyticspass123"
