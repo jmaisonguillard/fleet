@@ -1,0 +1,19 @@
+# Basic email testing with Mailpit
+project = "email-app"
+
+[[services]]
+name = "webapp"
+image = "node:20"
+port = 3000
+folder = "app"
+email = "mailpit"  # Uses default Mailpit version
+environment = { NODE_ENV = "development" }
+command = "npm run dev"
+
+[[services]]
+name = "api"
+image = "python:3.11"
+port = 8000
+folder = "api"
+email = "mailpit"  # Shares the same Mailpit instance (singleton)
+command = "python app.py"

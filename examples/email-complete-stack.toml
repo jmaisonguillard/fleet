@@ -1,0 +1,49 @@
+# Complete application stack with email testing
+project = "fullstack-email"
+
+# Main application with all services including email
+[[services]]
+name = "webapp"
+image = "node:20"
+port = 3000
+domain = "app.test"
+folder = "app"
+database = "postgres:15"
+database_name = "app_db"
+database_user = "app_user"
+database_password = "db_pass"
+cache = "redis:7.2"
+cache_password = "redis_pass"
+cache_max_memory = "512m"
+search = "meilisearch:1.6"
+search_master_key = "search_key"
+compat = "minio:2024"
+compat_access_key = "minio_access"
+compat_secret_key = "minio_secret"
+email = "mailpit:1.20"
+email_username = "app_smtp"
+email_password = "app_smtp_pass"
+environment = { NODE_ENV = "production" }
+command = "npm start"
+
+# Background worker for email sending
+[[services]]
+name = "email-worker"
+image = "node:20"
+folder = "workers/email"
+database = "postgres:15"     # Shares database with webapp
+cache = "redis:7.2"          # Shares cache with webapp
+cache_password = "redis_pass"
+email = "mailpit"            # Shares email service (singleton)
+command = "node email-worker.js"
+needs = ["webapp"]
+
+# API service also using email
+[[services]]
+name = "api"
+image = "golang:1.21"
+port = 8080
+folder = "api"
+database = "postgres:15"     # Shares database
+email = "mailpit:1.19"       # Different version specified but still uses same instance
+command = "go run main.go"

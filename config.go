@@ -41,6 +41,9 @@ type Service struct {
 	CompatAccessKey string        `toml:"compat_access_key,omitempty" yaml:"compat_access_key,omitempty" json:"compat_access_key,omitempty"`
 	CompatSecretKey string        `toml:"compat_secret_key,omitempty" yaml:"compat_secret_key,omitempty" json:"compat_secret_key,omitempty"`
 	CompatRegion    string        `toml:"compat_region,omitempty" yaml:"compat_region,omitempty" json:"compat_region,omitempty"`
+	Email           string        `toml:"email,omitempty" yaml:"email,omitempty" json:"email,omitempty"`
+	EmailUsername   string        `toml:"email_username,omitempty" yaml:"email_username,omitempty" json:"email_username,omitempty"`
+	EmailPassword   string        `toml:"email_password,omitempty" yaml:"email_password,omitempty" json:"email_password,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`
