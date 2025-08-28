@@ -57,30 +57,26 @@ echo "Mock Docker: $ARGS"
 # Handle specific commands
 case "$1" in
     "compose")
-        case "$3" in
-            "up")
-                echo "Creating network \"test-network\" with driver \"bridge\""
-                echo "Creating test-container ..."
-                echo "Creating test-container ... done"
-                exit 0
-                ;;
-            "down")
-                echo "Stopping test-container ..."
-                echo "Stopping test-container ... done"
-                echo "Removing test-container ..."
-                echo "Removing test-container ... done"
-                exit 0
-                ;;
-            "ps")
-                echo "NAME                STATUS              PORTS"
-                echo "test-container      Up 2 minutes        8080->80/tcp"
-                exit 0
-                ;;
-            "restart")
-                echo "Restarting test-container ... done"
-                exit 0
-                ;;
-        esac
+        # Check for the actual command (might be at $3 or $4 depending on flags)
+        if [[ "$*" == *"up"* ]]; then
+            echo "Creating network \"test-network\" with driver \"bridge\""
+            echo "Creating test-container ..."
+            echo "Creating test-container ... done"
+            exit 0
+        elif [[ "$*" == *"down"* ]]; then
+            echo "Stopping test-container ..."
+            echo "Stopping test-container ... done"
+            echo "Removing test-container ..."
+            echo "Removing test-container ... done"
+            exit 0
+        elif [[ "$*" == *"ps"* ]]; then
+            echo "NAME                STATUS              PORTS"
+            echo "test-container      Up 2 minutes        8080->80/tcp"
+            exit 0
+        elif [[ "$*" == *"restart"* ]]; then
+            echo "Restarting test-container ... done"
+            exit 0
+        fi
         ;;
     "ps")
         if [[ "$ARGS" == *"fleet-dnsmasq"* ]] || [[ "$ARGS" == *"dnsmasq"* ]]; then

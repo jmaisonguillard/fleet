@@ -160,7 +160,7 @@ func (suite *DNSTestSuite) TestDNSResolutionLogic() {
 		{
 			name:     "Localhost should resolve",
 			domain:   "localhost",
-			expected: false, // In test env without DNS, this will fail
+			expected: true, // localhost typically resolves to 127.0.0.1
 		},
 		{
 			name:     "Invalid domain should not resolve",
@@ -177,8 +177,11 @@ func (suite *DNSTestSuite) TestDNSResolutionLogic() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			result := testDNSResolution(tc.domain)
-			// In test environment, all should fail since we don't have DNS setup
-			suite.False(result)
+			if tc.expected {
+				suite.True(result, "Expected %s to resolve", tc.domain)
+			} else {
+				suite.False(result, "Expected %s not to resolve", tc.domain)
+			}
 		})
 	}
 }
