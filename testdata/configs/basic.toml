@@ -1,0 +1,7 @@
+project = "test-app"
+
+[[services]]
+name = "web"
+image = "nginx:alpine"
+port = 8080
+folder = "./website"

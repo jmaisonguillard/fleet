@@ -1,0 +1,25 @@
+project = "laravel-app"
+
+[[services]]
+name = "web"
+image = "nginx:alpine"
+port = 80
+folder = "./laravel"
+runtime = "php:8.4"
+framework = "laravel"
+database = "mysql:8.0"
+cache = "redis:7.2"
+debug = true
+
+[[services]]
+name = "database"
+image = "mysql:8.0"
+database_name = "laravel_db"
+database_user = "laravel"
+database_password = "secret"
+database_root_password = "root_secret"
+
+[[services]]
+name = "cache"
+image = "redis:7.2"
+cache_password = "redis_secret"

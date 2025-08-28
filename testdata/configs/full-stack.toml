@@ -1,0 +1,30 @@
+project = "full-app"
+
+[[services]]
+name = "web"
+image = "nginx:alpine"
+port = 8080
+folder = "./website"
+domain = "app.test"
+
+[[services]]
+name = "api"
+image = "node:18"
+port = 3000
+needs = ["database", "cache"]
+database = "postgres:15"
+cache = "redis:7.2"
+[services.environment]
+NODE_ENV = "development"
+
+[[services]]
+name = "database"
+image = "postgres:15"
+port = 5432
+database_password = "changeme"
+volumes = ["db-data:/var/lib/postgresql/data"]
+
+[[services]]
+name = "cache"
+image = "redis:7.2"
+port = 6379
