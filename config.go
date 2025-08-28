@@ -31,6 +31,9 @@ type Service struct {
 	DatabaseUser string           `toml:"database_user,omitempty" yaml:"database_user,omitempty" json:"database_user,omitempty"`
 	DatabasePassword string       `toml:"database_password,omitempty" yaml:"database_password,omitempty" json:"database_password,omitempty"`
 	DatabaseRootPassword string   `toml:"database_root_password,omitempty" yaml:"database_root_password,omitempty" json:"database_root_password,omitempty"`
+	Cache           string        `toml:"cache,omitempty" yaml:"cache,omitempty" json:"cache,omitempty"`
+	CachePassword   string        `toml:"cache_password,omitempty" yaml:"cache_password,omitempty" json:"cache_password,omitempty"`
+	CacheMaxMemory  string        `toml:"cache_max_memory,omitempty" yaml:"cache_max_memory,omitempty" json:"cache_max_memory,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`

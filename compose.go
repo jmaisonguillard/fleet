@@ -228,6 +228,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if svc.Database != "" {
 			addDatabaseService(compose, &svc, config)
 		}
+		
+		// Add cache service if specified
+		if svc.Cache != "" {
+			addCacheService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions

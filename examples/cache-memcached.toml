@@ -1,0 +1,21 @@
+# Memcached cache configuration
+project = "sessions-app"
+
+[[services]]
+name = "web"
+image = "php:8.2-apache"
+port = 80
+domain = "myapp.test"
+folder = "src"
+cache = "memcached:1.6"
+cache_max_memory = "128m"  # Memcached memory limit
+environment = { SESSION_STORE = "memcached" }
+
+[[services]]
+name = "api"
+image = "node:20"
+port = 3000
+folder = "api"
+cache = "memcached:1.6"  # Shares the same Memcached container
+cache_max_memory = "128m"
+command = "npm start"
