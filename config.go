@@ -34,6 +34,9 @@ type Service struct {
 	Cache           string        `toml:"cache,omitempty" yaml:"cache,omitempty" json:"cache,omitempty"`
 	CachePassword   string        `toml:"cache_password,omitempty" yaml:"cache_password,omitempty" json:"cache_password,omitempty"`
 	CacheMaxMemory  string        `toml:"cache_max_memory,omitempty" yaml:"cache_max_memory,omitempty" json:"cache_max_memory,omitempty"`
+	Search          string        `toml:"search,omitempty" yaml:"search,omitempty" json:"search,omitempty"`
+	SearchApiKey    string        `toml:"search_api_key,omitempty" yaml:"search_api_key,omitempty" json:"search_api_key,omitempty"`
+	SearchMasterKey string        `toml:"search_master_key,omitempty" yaml:"search_master_key,omitempty" json:"search_master_key,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`

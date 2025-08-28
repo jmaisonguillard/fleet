@@ -1,0 +1,42 @@
+# Mixed search services with different versions
+project = "multi-search"
+
+# Service using Meilisearch 1.6
+[[services]]
+name = "product-search"
+image = "node:20"
+port = 3001
+folder = "services/products"
+search = "meilisearch:1.6"
+search_master_key = "product_key"
+command = "npm run dev"
+
+# Service using older Meilisearch 1.5
+[[services]]
+name = "legacy-search"
+image = "python:3.9"
+port = 3002
+folder = "services/legacy"
+search = "meilisearch:1.5"  # Different version - gets own container
+search_master_key = "legacy_key"
+command = "python app.py"
+
+# Service using Typesense for instant search
+[[services]]
+name = "instant-search"
+image = "node:18"
+port = 3003
+folder = "services/instant"
+search = "typesense:27.1"
+search_api_key = "instant_api_key"
+command = "node server.js"
+
+# Service sharing Meilisearch 1.6 with product-search
+[[services]]
+name = "analytics"
+image = "python:3.11"
+port = 3004
+folder = "services/analytics"
+search = "meilisearch:1.6"  # Same version as product-search - shares container
+search_master_key = "product_key"
+command = "python analytics.py"

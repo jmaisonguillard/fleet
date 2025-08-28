@@ -233,6 +233,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if svc.Cache != "" {
 			addCacheService(compose, &svc, config)
 		}
+		
+		// Add search service if specified
+		if svc.Search != "" {
+			addSearchService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions

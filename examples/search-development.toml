@@ -1,0 +1,36 @@
+# Development environment with search (no authentication)
+project = "dev-search"
+
+# Meilisearch in development mode (no master key)
+[[services]]
+name = "app"
+image = "node:20"
+port = 3000
+folder = "app"
+search = "meilisearch"  # Uses default Meilisearch 1.6 without auth
+environment = { NODE_ENV = "development" }
+command = "npm run dev"
+
+# Typesense with default development key
+[[services]]
+name = "search-ui"
+image = "python:3.11"
+port = 5000
+folder = "search-ui"
+search = "typesense"  # Uses default Typesense 27.1 with dev key
+command = "python server.py"
+
+# Multiple services sharing same Meilisearch
+[[services]]
+name = "indexer1"
+image = "python:3.11"
+folder = "indexers"
+search = "meilisearch"  # Shares Meilisearch with app service
+command = "python indexer1.py"
+
+[[services]]
+name = "indexer2"
+image = "python:3.11"
+folder = "indexers"
+search = "meilisearch"  # Shares Meilisearch with app and indexer1
+command = "python indexer2.py"

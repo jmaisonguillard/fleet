@@ -1,0 +1,21 @@
+# Typesense search service configuration
+project = "typesense-app"
+
+[[services]]
+name = "webapp"
+image = "php:8.2-apache"
+port = 80
+domain = "search.test"
+folder = "webapp"
+search = "typesense:27.1"
+search_api_key = "xyz456production"
+environment = { APP_ENV = "production" }
+
+[[services]]
+name = "api"
+image = "golang:1.21"
+port = 8080
+folder = "api"
+search = "typesense:27.1"  # Shares same Typesense instance
+search_api_key = "xyz456production"
+command = "go run main.go"
