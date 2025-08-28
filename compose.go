@@ -85,17 +85,29 @@ func generateDockerCompose(config *Config) *DockerCompose {
 			service.Build = svc.Build
 		}
 
-		// Handle ports
-		if svc.Port > 0 {
-			service.Ports = []string{fmt.Sprintf("%d:%d", svc.Port, svc.Port)}
-		} else if len(svc.Ports) > 0 {
-			service.Ports = svc.Ports
+		// Handle ports - only expose if service has no domain
+		// Services with domains are accessed through nginx proxy, not directly
+		// Only expose ports if:
+		// 1. No nginx proxy is needed (no services with domains/ports in the config), OR
+		// 2. This specific service has no domain (neither explicit nor auto-generated)
+		hasDomain := getDomainForService(&svc) != ""
+		if !hasDomain {
+			if svc.Port > 0 {
+				service.Ports = []string{fmt.Sprintf("%d:%d", svc.Port, svc.Port)}
+			} else if len(svc.Ports) > 0 {
+				service.Ports = svc.Ports
+			}
 		}
 
 		// Handle volumes
 		if svc.Folder != "" {
-			// Map folder to container's /app directory
-			service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/app", svc.Folder))
+			// If it's an nginx image, map folder to nginx's default html directory
+			if strings.Contains(strings.ToLower(svc.Image), "nginx") {
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/usr/share/nginx/html", svc.Folder))
+			} else {
+				// For other images, map to /app
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/app", svc.Folder))
+			}
 		}
 
 		// Handle named volumes

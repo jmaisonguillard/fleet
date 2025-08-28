@@ -114,21 +114,46 @@ func addNginxProxyToCompose(compose *DockerCompose, config *Config) {
 		return
 	}
 
-	// Create .fleet directory if it doesn't exist
-	os.MkdirAll(".fleet", 0755)
+	// Get current working directory for absolute paths
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Warning: failed to get working directory: %v\n", err)
+		return
+	}
 
-	// Write nginx config
-	nginxConfigPath := filepath.Join(".fleet", "nginx.conf")
+	// Create .fleet directory if it doesn't exist
+	fleetDir := filepath.Join(cwd, ".fleet")
+	if err := os.MkdirAll(fleetDir, 0755); err != nil {
+		fmt.Printf("Warning: failed to create .fleet directory: %v\n", err)
+		return
+	}
+
+	// Create the nginx config file path with absolute path
+	nginxConfigPath := filepath.Join(fleetDir, "nginx.conf")
+	
+	// Write nginx config BEFORE creating docker service
 	if err := writeNginxConfig(config, nginxConfigPath); err != nil {
 		fmt.Printf("Warning: failed to write nginx config: %v\n", err)
 		return
 	}
 
-	// Add nginx proxy service
+	// Verify the file exists and is readable
+	if _, err := os.Stat(nginxConfigPath); err != nil {
+		fmt.Printf("Warning: nginx config file does not exist or is not accessible: %v\n", err)
+		return
+	}
+
+	// Ensure file has proper permissions for Docker to read
+	if err := os.Chmod(nginxConfigPath, 0644); err != nil {
+		fmt.Printf("Warning: failed to set permissions on nginx config: %v\n", err)
+		return
+	}
+
+	// Add nginx proxy service with absolute path for the volume mount
 	nginxService := DockerService{
 		Image:    "nginx:alpine",
 		Ports:    []string{"80:80"},
-		Volumes:  []string{"./.fleet/nginx.conf:/etc/nginx/nginx.conf:ro"},
+		Volumes:  []string{fmt.Sprintf("%s:/etc/nginx/nginx.conf:ro", nginxConfigPath)},
 		Networks: []string{"fleet-network"},
 		Restart:  "unless-stopped",
 		DependsOn: []string{},

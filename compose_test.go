@@ -34,10 +34,14 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeBasic() {
 	suite.Contains(compose.Services, "web")
 	webService := compose.Services["web"]
 	suite.Equal("nginx:alpine", webService.Image)
-	// Check network and port mapping
+	// Check network
 	suite.Contains(webService.Networks, "fleet-network")
-	suite.Contains(webService.Ports, "8080:8080")
+	// Service with port gets auto-generated domain "web.test", so it should NOT expose ports directly
+	suite.Empty(webService.Ports, "Service with auto-generated domain should not expose ports")
 	suite.Equal("unless-stopped", webService.Restart)
+	
+	// Should have nginx proxy since service has a port
+	suite.Contains(compose.Services, "nginx-proxy")
 }
 
 func (suite *ComposeTestSuite) TestGenerateDockerComposeWithBuild() {
@@ -57,7 +61,8 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeWithBuild() {
 	apiService := compose.Services["api"]
 	suite.Equal("./api", apiService.Build)
 	suite.Empty(apiService.Image)
-	suite.Contains(apiService.Ports, "3000:3000")
+	// Service with port gets auto-generated domain "api.test", so it should NOT expose ports directly
+	suite.Empty(apiService.Ports, "Service with auto-generated domain should not expose ports")
 }
 
 func (suite *ComposeTestSuite) TestGenerateDockerComposeWithVolumes() {
@@ -157,6 +162,8 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeWithFolder() {
 	webService := compose.Services["web"]
 	// Folder is mapped to /app according to implementation
 	suite.Contains(webService.Volumes, "./website:/app")
+	// Service with port gets auto-generated domain, so it should NOT expose ports directly
+	suite.Empty(webService.Ports, "Service with auto-generated domain should not expose ports")
 }
 
 func (suite *ComposeTestSuite) TestGenerateDockerComposeNetworks() {
@@ -284,8 +291,125 @@ func (suite *ComposeTestSuite) TestDetectPortForService() {
 		compose := generateDockerCompose(&config)
 
 		serviceConfig := compose.Services[tc.serviceName]
-		suite.Contains(serviceConfig.Ports[0], tc.expectedPort)
+		// Services with ports get auto-generated domains, so they should NOT expose ports directly
+		suite.Empty(serviceConfig.Ports, "Service %s with auto-generated domain should not expose ports", tc.serviceName)
 	}
+}
+
+// Test service without port and without domain exposes nothing
+func (suite *ComposeTestSuite) TestGenerateDockerComposeServiceNoPortNoDomain() {
+	config := Config{
+		Project: "test-project",
+		Services: []Service{
+			{
+				Name:  "worker",
+				Image: "worker:latest",
+			},
+		},
+	}
+
+	compose := generateDockerCompose(&config)
+	
+	workerService := compose.Services["worker"]
+	suite.Empty(workerService.Ports, "Service without port and domain should not expose any ports")
+	
+	// Should NOT have nginx proxy since no service has ports or domains
+	suite.NotContains(compose.Services, "nginx-proxy", "Should not add nginx proxy when no services need it")
+}
+
+// Test service with explicit domain doesn't expose ports
+func (suite *ComposeTestSuite) TestGenerateDockerComposeServiceWithExplicitDomain() {
+	config := Config{
+		Project: "test-project",
+		Services: []Service{
+			{
+				Name:   "web",
+				Image:  "nginx:alpine",
+				Domain: "myapp.test",
+				Port:   8080,
+			},
+		},
+	}
+
+	compose := generateDockerCompose(&config)
+	
+	webService := compose.Services["web"]
+	suite.Empty(webService.Ports, "Service with explicit domain should not expose ports")
+	
+	// Should have nginx proxy since service has domain
+	suite.Contains(compose.Services, "nginx-proxy", "Should add nginx proxy for service with domain")
+	nginxService := compose.Services["nginx-proxy"]
+	suite.Contains(nginxService.Ports, "80:80", "Nginx proxy should expose port 80")
+}
+
+// Test mixed services - some with domains, some without
+func (suite *ComposeTestSuite) TestGenerateDockerComposeMixedServices() {
+	config := Config{
+		Project: "test-project",
+		Services: []Service{
+			{
+				Name:   "web",
+				Image:  "nginx:alpine",
+				Domain: "web.test",
+				Port:   8080,
+			},
+			{
+				Name:  "api",
+				Image: "node:18",
+				Port:  3000,  // Gets auto-generated domain api.test
+			},
+			{
+				Name:  "worker",
+				Image: "worker:latest",  // No port, no domain
+			},
+		},
+	}
+
+	compose := generateDockerCompose(&config)
+	
+	// Web service has explicit domain
+	webService := compose.Services["web"]
+	suite.Empty(webService.Ports, "Web service with domain should not expose ports")
+	
+	// API service gets auto-generated domain
+	apiService := compose.Services["api"]
+	suite.Empty(apiService.Ports, "API service with auto-generated domain should not expose ports")
+	
+	// Worker has neither port nor domain
+	workerService := compose.Services["worker"]
+	suite.Empty(workerService.Ports, "Worker service without port/domain should not expose ports")
+	
+	// Should have nginx proxy
+	suite.Contains(compose.Services, "nginx-proxy", "Should add nginx proxy")
+	nginxService := compose.Services["nginx-proxy"]
+	suite.Contains(nginxService.Ports, "80:80", "Only nginx proxy should expose port 80")
+	suite.Contains(nginxService.DependsOn, "web", "Nginx should depend on web")
+	suite.Contains(nginxService.DependsOn, "api", "Nginx should depend on api")
+	suite.NotContains(nginxService.DependsOn, "worker", "Nginx should not depend on worker")
+}
+
+// Test service with ports array but no domain should not expose ports when it gets auto-generated domain
+func (suite *ComposeTestSuite) TestGenerateDockerComposePortsArray() {
+	config := Config{
+		Project: "test-project",
+		Services: []Service{
+			{
+				Name:  "web",
+				Image: "nginx:alpine",
+				Ports: []string{"8080:80", "8443:443"},
+			},
+		},
+	}
+
+	compose := generateDockerCompose(&config)
+	
+	webService := compose.Services["web"]
+	// Service with ports array still doesn't expose because no Port field means no auto-generated domain
+	suite.Contains(webService.Ports, "8080:80", "Service with ports array but no Port field should expose ports")
+	suite.Contains(webService.Ports, "8443:443", "Service with ports array but no Port field should expose ports")
+	
+	// No nginx proxy because service has no Port field (required for auto-generated domain)
+	suite.NotContains(compose.Services, "nginx-proxy", "Should not add nginx proxy when service has no Port field")
 }
 
 func TestComposeSuite(t *testing.T) {

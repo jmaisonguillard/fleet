@@ -272,8 +272,14 @@ func (suite *NginxTestSuite) TestAddNginxProxyToCompose_AddsService() {
 	nginxService, exists := compose.Services["nginx-proxy"]
 	suite.True(exists, "nginx-proxy service should be added")
 	suite.Equal("nginx:alpine", nginxService.Image, "Should use nginx:alpine image")
-	suite.Contains(nginxService.Ports, "80:80", "Should expose port 80")
+	suite.Contains(nginxService.Ports, "80:80", "Should expose port 80 - only nginx should bind to 80")
+	
+	// Check that volume mount uses absolute path and contains nginx.conf
+	suite.Len(nginxService.Volumes, 1, "Should have one volume mount")
 	suite.Contains(nginxService.Volumes[0], "nginx.conf", "Should mount nginx config")
+	suite.Contains(nginxService.Volumes[0], ":/etc/nginx/nginx.conf:ro", "Should mount to /etc/nginx/nginx.conf as read-only")
+	suite.Contains(nginxService.Volumes[0], suite.tempDir, "Should use absolute path from temp dir")
+	
 	suite.Contains(nginxService.Networks, "fleet-network", "Should be on fleet-network")
 	suite.Equal("unless-stopped", nginxService.Restart, "Should have restart policy")
 	suite.Contains(nginxService.DependsOn, "web", "Should depend on web service")
@@ -281,6 +287,15 @@ func (suite *NginxTestSuite) TestAddNginxProxyToCompose_AddsService() {
 	// Verify health check
 	suite.NotNil(nginxService.HealthCheck, "Should have health check")
 	suite.Contains(nginxService.HealthCheck.Test, "wget", "Health check should use wget")
+	
+	// Verify nginx.conf file was actually created
+	nginxConfigPath := filepath.Join(suite.tempDir, ".fleet", "nginx.conf")
+	_, err := os.Stat(nginxConfigPath)
+	suite.NoError(err, "nginx.conf should be created before docker service")
+	
+	// Verify file permissions
+	info, _ := os.Stat(nginxConfigPath)
+	suite.Equal(os.FileMode(0644), info.Mode().Perm(), "nginx.conf should have 0644 permissions")
 }
 
 func (suite *NginxTestSuite) TestAddNginxProxyToCompose_NoNginxNeeded() {
@@ -306,6 +321,58 @@ func (suite *NginxTestSuite) TestAddNginxProxyToCompose_NoNginxNeeded() {
 	// Then: nginx-proxy service should NOT be added
 	_, exists := compose.Services["nginx-proxy"]
 	suite.False(exists, "nginx-proxy service should not be added when not needed")
+}
+
+func (suite *NginxTestSuite) TestAddNginxProxyToCompose_FileCreationOrder() {
+	// Given: Docker compose and config that needs nginx
+	compose := &DockerCompose{
+		Version:  "3.8",
+		Services: map[string]DockerService{},
+		Networks: map[string]DockerNetwork{
+			"fleet-network": {},
+		},
+	}
+
+	config := &Config{
+		Project: "test-app",
+		Services: []Service{
+			{
+				Name:   "api",
+				Domain: "api.test",
+				Port:   3000,
+			},
+		},
+	}
+
+	// Change to temp directory for .fleet folder creation
+	originalDir, _ := os.Getwd()
+	defer os.Chdir(originalDir)
+	os.Chdir(suite.tempDir)
+
+	// When: adding nginx proxy to compose
+	addNginxProxyToCompose(compose, config)
+
+	// Then: verify the file was created before being referenced
+	nginxService, exists := compose.Services["nginx-proxy"]
+	suite.True(exists, "nginx-proxy service should be added")
+	
+	// The volume mount should use absolute path
+	suite.Len(nginxService.Volumes, 1, "Should have exactly one volume mount")
+	volumeMount := nginxService.Volumes[0]
+	
+	// Extract the source path from the volume mount (format: /abs/path/nginx.conf:/etc/nginx/nginx.conf:ro)
+	parts := strings.Split(volumeMount, ":")
+	suite.Len(parts, 3, "Volume mount should have source:dest:mode format")
+	
+	sourcePath := parts[0]
+	suite.True(filepath.IsAbs(sourcePath), "Source path should be absolute")
+	suite.Contains(sourcePath, "nginx.conf", "Source path should reference nginx.conf")
+	
+	// Verify the file exists at the source path
+	info, err := os.Stat(sourcePath)
+	suite.NoError(err, "nginx.conf file should exist at the source path")
+	suite.False(info.IsDir(), "nginx.conf should be a file, not a directory")
+	suite.Equal(os.FileMode(0644), info.Mode().Perm(), "File should have correct permissions")
 }
 
 // Test getDomainMappings returns correct mappings

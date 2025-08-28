@@ -1,19 +1,8 @@
-# Fleet Configuration - Super Simple!
-# Just fill in your services below
+project = "rian"
 
-project = "my-app"
-
-# Add your services here
 [[services]]
-name = "website"
-image = "nginx"
+name = "web"
+image = "nginx:alpine"
 port = 80
-folder = "./my-website"  # Put your HTML files here
-
-[[services]]
-name = "database"
-image = "postgres"
-port = 5432
-password = "changeme"  # Don't forget to change this!
-
-# Want to add more services? Just copy the pattern above!
+domain = "rian.test"
+folder = "./website"
