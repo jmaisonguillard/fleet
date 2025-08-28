@@ -1,0 +1,55 @@
+# Complete application stack with MinIO S3-compatible storage
+project = "fullstack-minio"
+
+# Main application with MinIO, database, cache, and search
+[[services]]
+name = "webapp"
+image = "node:20"
+port = 3000
+domain = "app.test"
+folder = "app"
+database = "postgres:15"
+database_name = "app_db"
+database_user = "app_user"
+database_password = "db_pass"
+cache = "redis:7.2"
+cache_password = "redis_pass"
+cache_max_memory = "512m"
+search = "meilisearch:1.6"
+search_master_key = "search_master_key"
+compat = "minio:2024"
+compat_access_key = "app_minio_access"
+compat_secret_key = "app_minio_secret"
+compat_region = "eu-central-1"
+environment = { NODE_ENV = "production" }
+command = "npm start"
+
+# Background worker for file processing
+[[services]]
+name = "file-processor"
+image = "python:3.11"
+folder = "workers/processor"
+database = "postgres:15"     # Shares database with webapp
+cache = "redis:7.2"          # Shares cache with webapp
+cache_password = "redis_pass"
+compat = "minio:2024"        # Shares MinIO with webapp
+compat_access_key = "app_minio_access"
+compat_secret_key = "app_minio_secret"
+compat_region = "eu-central-1"
+command = "python processor.py"
+needs = ["webapp"]
+
+# Media service with its own cache but shared MinIO
+[[services]]
+name = "media-api"
+image = "golang:1.21"
+port = 8080
+folder = "media"
+database = "postgres:15"     # Shares database
+cache = "memcached:1.6"      # Different cache system
+cache_max_memory = "256m"
+compat = "minio:2024"        # Shares MinIO with webapp
+compat_access_key = "app_minio_access"
+compat_secret_key = "app_minio_secret"
+compat_region = "eu-central-1"
+command = "go run main.go"

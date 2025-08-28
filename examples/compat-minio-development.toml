@@ -1,0 +1,27 @@
+# MinIO development configuration with default credentials
+project = "minio-dev"
+
+# MinIO with default admin credentials
+[[services]]
+name = "app"
+image = "node:20"
+port = 3000
+folder = "app"
+compat = "minio"  # Uses default MinIO 2024 with minioadmin credentials
+environment = { NODE_ENV = "development" }
+command = "npm run dev"
+
+# Multiple services sharing same MinIO
+[[services]]
+name = "uploader"
+image = "golang:1.21"
+folder = "uploader"
+compat = "minio"  # Shares MinIO with app service
+command = "go run uploader.go"
+
+[[services]]
+name = "processor"
+image = "python:3.11"
+folder = "processor"
+compat = "minio"  # Shares MinIO with app and uploader
+command = "python processor.py"

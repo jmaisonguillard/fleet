@@ -238,6 +238,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if svc.Search != "" {
 			addSearchService(compose, &svc, config)
 		}
+		
+		// Add compatibility service if specified
+		if svc.Compat != "" {
+			addCompatService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions
