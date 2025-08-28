@@ -50,6 +50,8 @@ type Service struct {
 	ReverbAppId     string        `toml:"reverb_app_id,omitempty" yaml:"reverb_app_id,omitempty" json:"reverb_app_id,omitempty"`
 	ReverbAppKey    string        `toml:"reverb_app_key,omitempty" yaml:"reverb_app_key,omitempty" json:"reverb_app_key,omitempty"`
 	ReverbAppSecret string        `toml:"reverb_app_secret,omitempty" yaml:"reverb_app_secret,omitempty" json:"reverb_app_secret,omitempty"`
+	SSL             bool          `toml:"ssl,omitempty" yaml:"ssl,omitempty" json:"ssl,omitempty"`
+	SSLPort         int           `toml:"ssl_port,omitempty" yaml:"ssl_port,omitempty" json:"ssl_port,omitempty"`
 	Debug           bool          `toml:"debug,omitempty" yaml:"debug,omitempty" json:"debug,omitempty"`
 	DebugPort       int           `toml:"debug_port,omitempty" yaml:"debug_port,omitempty" json:"debug_port,omitempty"`
 	DatabaseExtensions []string   `toml:"database_extensions,omitempty" yaml:"database_extensions,omitempty" json:"database_extensions,omitempty"`

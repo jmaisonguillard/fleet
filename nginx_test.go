@@ -788,9 +788,9 @@ func (suite *NginxTestSuite) TestGenerateNginxConfig_ValidSyntax() {
 	suite.Contains(nginxConf, "proxy_set_header Upgrade", "Should support WebSocket upgrade")
 	suite.Contains(nginxConf, "proxy_set_header Connection", "Should support WebSocket connection")
 
-	// Count server blocks - should have default + 3 service blocks
+	// Count server blocks - should have default + health + 3 service blocks
 	serverCount := strings.Count(nginxConf, "server {")
-	suite.Equal(4, serverCount, "Should have 4 server blocks (1 default + 3 services)")
+	suite.Equal(5, serverCount, "Should have 5 server blocks (1 default + 1 health + 3 services)")
 }
 
 func TestNginxSuite(t *testing.T) {

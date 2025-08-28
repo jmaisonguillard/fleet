@@ -302,3 +302,27 @@ if _, exists := compose.Services[serviceName]; exists {
 - **Auto-configuration**: Sets BROADCAST_DRIVER, VITE_REVERB_* variables
 - **Health checks**: Monitors WebSocket server availability
 - **Shared code**: Mounts application code for artisan commands
+
+### SSL Support (`ssl_service.go`)
+- **Self-signed certificates**: Auto-generates certificates for HTTPS
+- **Per-service configuration**: Each service can enable SSL independently
+- **Configuration fields**:
+  - `ssl = true`: Enable SSL for a service
+  - `ssl_port = 443`: Custom HTTPS port (default: 443)
+- **Certificate management**:
+  - Certificates stored in `.fleet/ssl/`
+  - Auto-renewal when certificates expire within 30 days
+  - Default certificate for catch-all server
+- **Nginx integration**: Automatic HTTPS configuration with:
+  - TLS 1.2 and 1.3 support
+  - Modern cipher suites
+  - HTTP to HTTPS redirection
+  - SSL session caching
+- **Example configuration**:
+  ```toml
+  [[services]]
+  name = "secure-web"
+  domain = "secure.test"
+  ssl = true
+  ssl_port = 443  # Optional, defaults to 443
+  ```

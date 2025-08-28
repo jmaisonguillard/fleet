@@ -1,0 +1,38 @@
+project = "ssl-demo"
+
+[[services]]
+name = "secure-web"
+runtime = "php:8.3"
+framework = "laravel"
+folder = "./secure-app"
+domain = "secure.test"
+port = 80
+ssl = true  # Enable SSL for this service
+ssl_port = 443  # Optional: defaults to 443
+
+[[services]]
+name = "secure-api"
+runtime = "php:8.3"
+framework = "laravel"
+folder = "./api"
+domain = "api.secure.test"
+port = 8080
+ssl = true  # Enable SSL
+ssl_port = 8443  # Custom HTTPS port
+
+[[services]]
+name = "regular-web"
+runtime = "php:8.3"
+framework = "laravel"
+folder = "./regular-app"
+domain = "regular.test"
+port = 3000
+# No SSL for this service
+
+[[services]]
+name = "db"
+database = "mysql:8.0"
+database_name = "secure_app"
+database_user = "secure_user"
+database_password = "secure_pass"
+database_root_password = "root_secure"

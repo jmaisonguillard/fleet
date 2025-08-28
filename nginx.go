@@ -17,9 +17,14 @@ type NginxConfig struct {
 
 // ServiceWithDomain represents a service with domain configuration
 type ServiceWithDomain struct {
-	Name   string
-	Domain string
-	Port   int
+	Name             string
+	Domain           string
+	Port             int
+	SSL              bool
+	SSLPort          int
+	CertPath         string
+	KeyPath          string
+	SanitizedDomain  string  // For certificate filenames
 }
 
 // shouldAddNginxProxy checks if we need to add nginx proxy
@@ -46,6 +51,13 @@ func getDomainForService(svc *Service) string {
 
 // generateNginxConfig generates nginx configuration from fleet config
 func generateNginxConfig(config *Config) (string, error) {
+	// Generate SSL certificates first if any service needs SSL
+	if hasSSLServices(config) {
+		if err := generateSSLCertificates(config); err != nil {
+			fmt.Printf("Warning: failed to generate SSL certificates: %v\n", err)
+			// Continue without SSL if certificate generation fails
+		}
+	}
 	// Read the template
 	tmplContent, err := templatesFS.ReadFile("templates/nginx/nginx.conf.tmpl")
 	if err != nil {
@@ -76,11 +88,28 @@ func generateNginxConfig(config *Config) (string, error) {
 				fmt.Sscanf(containerPort, "%d", &port)
 			}
 			
-			services = append(services, ServiceWithDomain{
-				Name:   svc.Name,
-				Domain: domain,
-				Port:   port,
-			})
+			svcWithDomain := ServiceWithDomain{
+				Name:            svc.Name,
+				Domain:          domain,
+				Port:            port,
+				SSL:             svc.SSL,
+				SanitizedDomain: sanitizeDomainForFilename(domain),
+			}
+			
+			// Set SSL port
+			if svc.SSL {
+				svcWithDomain.SSLPort = 443
+				if svc.SSLPort != 0 {
+					svcWithDomain.SSLPort = svc.SSLPort
+				}
+				
+				// Set certificate paths
+				sslDir := filepath.Join(".fleet", "ssl")
+				svcWithDomain.CertPath = filepath.Join(sslDir, fmt.Sprintf("%s.crt", svcWithDomain.SanitizedDomain))
+				svcWithDomain.KeyPath = filepath.Join(sslDir, fmt.Sprintf("%s.key", svcWithDomain.SanitizedDomain))
+			}
+			
+			services = append(services, svcWithDomain)
 		}
 	}
 
@@ -149,11 +178,26 @@ func addNginxProxyToCompose(compose *DockerCompose, config *Config) {
 		return
 	}
 
+	// Prepare ports and volumes for nginx service
+	ports := []string{"80:80"}
+	volumes := []string{fmt.Sprintf("%s:/etc/nginx/nginx.conf:ro", nginxConfigPath)}
+	
+	// Add HTTPS port and SSL volumes if any service has SSL
+	if hasSSLServices(config) {
+		ports = append(ports, "443:443")
+		
+		// Mount SSL directory
+		sslDir := filepath.Join(cwd, ".fleet", "ssl")
+		if _, err := os.Stat(sslDir); err == nil {
+			volumes = append(volumes, fmt.Sprintf("%s:/etc/nginx/ssl:ro", sslDir))
+		}
+	}
+	
 	// Add nginx proxy service with absolute path for the volume mount
 	nginxService := DockerService{
 		Image:    "nginx:alpine",
-		Ports:    []string{"80:80"},
-		Volumes:  []string{fmt.Sprintf("%s:/etc/nginx/nginx.conf:ro", nginxConfigPath)},
+		Ports:    ports,
+		Volumes:  volumes,
 		Networks: []string{"fleet-network"},
 		Restart:  "unless-stopped",
 		DependsOn: []string{},

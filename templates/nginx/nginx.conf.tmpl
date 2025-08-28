@@ -39,15 +39,57 @@ http {
     # Default server to catch undefined hosts
     server {
         listen 80 default_server;
+        listen 443 ssl default_server;
         server_name _;
+        
+        # Use a self-signed cert for default server (to handle SSL handshake)
+        ssl_certificate /etc/nginx/ssl/default.crt;
+        ssl_certificate_key /etc/nginx/ssl/default.key;
+        
         return 444;
+    }
+
+    # Health check endpoint
+    server {
+        listen 80;
+        server_name localhost;
+        
+        location /health {
+            access_log off;
+            add_header Content-Type text/plain;
+            return 200 "healthy\n";
+        }
     }
 
     # Virtual hosts for each service
     {{range .Services}}{{if .Domain}}
     server {
         listen 80;
+        {{if .SSL}}
+        listen {{.SSLPort}} ssl;
+        {{end}}
         server_name {{.Domain}};
+        
+        {{if .SSL}}
+        # SSL Configuration
+        ssl_certificate /etc/nginx/ssl/{{.SanitizedDomain}}.crt;
+        ssl_certificate_key /etc/nginx/ssl/{{.SanitizedDomain}}.key;
+        
+        # Modern SSL configuration
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers off;
+        
+        # SSL session caching
+        ssl_session_timeout 1d;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_tickets off;
+        
+        # Redirect HTTP to HTTPS
+        if ($scheme != "https") {
+            return 301 https://$server_name$request_uri;
+        }
+        {{end}}
 
         location / {
             proxy_pass http://{{.Name}}_backend;
