@@ -204,6 +204,11 @@ func configurePostgresService(service *DockerService, svc *Service, dbServiceNam
 	service.Environment["POSTGRES_USER"] = getEnvOrDefault(svc.DatabaseUser, svc.Name)
 	service.Environment["POSTGRES_PASSWORD"] = getEnvOrDefault(svc.DatabasePassword, "password")
 	
+	// Configure PostgreSQL extensions if specified
+	if len(svc.DatabaseExtensions) > 0 {
+		configurePostgresExtensions(service, svc, dbServiceName)
+	}
+	
 	// Health check
 	service.HealthCheck = &HealthCheckYAML{
 		Test:     []string{"CMD-SHELL", "pg_isready -U " + service.Environment["POSTGRES_USER"]},
@@ -328,4 +333,102 @@ func containsString(slice []string, str string) bool {
 		}
 	}
 	return false
+}
+
+// configurePostgresExtensions configures PostgreSQL with required extensions
+func configurePostgresExtensions(service *DockerService, svc *Service, dbServiceName string) {
+	// Use an image with extensions pre-installed based on what's requested
+	hasPostGIS := false
+	hasPgVector := false
+	hasPgRouting := false
+	
+	for _, ext := range svc.DatabaseExtensions {
+		switch strings.ToLower(ext) {
+		case "postgis":
+			hasPostGIS = true
+		case "pgvector":
+			hasPgVector = true
+		case "pgrouting":
+			hasPgRouting = true
+		}
+	}
+	
+	// If PostGIS is required, use the PostGIS image which includes many extensions
+	if hasPostGIS || hasPgRouting {
+		// Extract version from current image
+		version := "15" // default
+		if strings.Contains(service.Image, ":") {
+			parts := strings.Split(service.Image, ":")
+			if len(parts) > 1 {
+				version = strings.Split(parts[1], "-")[0]
+			}
+		}
+		// Use PostGIS image which includes PostGIS, pgrouting, and many other extensions
+		service.Image = fmt.Sprintf("postgis/postgis:%s-3.4", version)
+	} else if hasPgVector {
+		// For pgvector, use the pgvector image or add custom initialization
+		version := "15" // default
+		if strings.Contains(service.Image, ":") {
+			parts := strings.Split(service.Image, ":")
+			if len(parts) > 1 {
+				version = strings.Split(parts[1], "-")[0]
+			}
+		}
+		service.Image = fmt.Sprintf("pgvector/pgvector:pg%s", version)
+	}
+	
+	// Create initialization script for enabling extensions
+	initScript := generatePostgresInitScript(svc.DatabaseExtensions)
+	if initScript != "" {
+		// Mount initialization script
+		initScriptPath := fmt.Sprintf(".fleet/%s-init.sql", dbServiceName)
+		service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/docker-entrypoint-initdb.d/init.sql:ro", initScriptPath))
+		
+		// Store the init script content to be written later
+		if service.Labels == nil {
+			service.Labels = make(map[string]string)
+		}
+		service.Labels["fleet.postgres.init.script"] = initScript
+		service.Labels["fleet.postgres.init.path"] = initScriptPath
+	}
+}
+
+// generatePostgresInitScript generates SQL script to enable extensions
+func generatePostgresInitScript(extensions []string) string {
+	if len(extensions) == 0 {
+		return ""
+	}
+	
+	var script strings.Builder
+	script.WriteString("-- Fleet PostgreSQL Extensions Initialization\n\n")
+	
+	for _, ext := range extensions {
+		extLower := strings.ToLower(ext)
+		switch extLower {
+		case "postgis":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS postgis;\n")
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS postgis_topology;\n")
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;\n")
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;\n")
+		case "pgvector":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS vector;\n")
+		case "pgrouting":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS pgrouting;\n")
+		case "uuid-ossp":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";\n")
+		case "hstore":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS hstore;\n")
+		case "pg_trgm":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS pg_trgm;\n")
+		case "btree_gin":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS btree_gin;\n")
+		case "btree_gist":
+			script.WriteString("CREATE EXTENSION IF NOT EXISTS btree_gist;\n")
+		default:
+			// Try to create any other extension as-is
+			script.WriteString(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %s;\n", extLower))
+		}
+	}
+	
+	return script.String()
 }

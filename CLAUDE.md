@@ -172,6 +172,10 @@ The codebase includes comprehensive Docker mocking:
 - **Container naming**: Each service gets own PHP-FPM container (e.g., `web-php`)
 - **Nginx integration**: Auto-generates PHP-FPM nginx configs in `.fleet/`
 - **Framework configs**: Each framework gets specific nginx routing rules
+- **Xdebug support**: Enable with `debug = true` and optionally `debug_port = 9003`
+  - Automatic Xdebug installation and configuration
+  - IDE integration (PHPStorm, VSCode)
+  - Configurable debug port (default: 9003)
 
 ### Database Services (`database_services.go`)
 - **Supported**: MySQL, PostgreSQL, MongoDB, MariaDB (not Redis - handled separately)
@@ -180,6 +184,11 @@ The codebase includes comprehensive Docker mocking:
 - **Auto environment vars**: Sets DB_CONNECTION, DB_HOST, DATABASE_URL etc. for apps
 - **Health checks**: Each database type has appropriate health check configured
 - **Volumes**: Persistent data volumes auto-created (e.g., `mysql-80-data`)
+- **PostgreSQL Extensions**: Configure with `database_extensions = ["postgis", "pgvector"]`
+  - PostGIS: Full spatial database support (uses postgis/postgis image)
+  - pgvector: Vector similarity search (uses pgvector/pgvector image)
+  - Common extensions: uuid-ossp, hstore, pg_trgm, btree_gin, btree_gist, pgrouting
+  - Auto-generates initialization scripts in `.fleet/`
 
 ### Nginx Proxy (`nginx.go`)
 - **Auto-generation**: Creates nginx-proxy container when services have domains
@@ -282,3 +291,14 @@ if _, exists := compose.Services[serviceName]; exists {
 - **Authentication**: Optional SMTP username/password
 - **Environment vars**: SMTP_HOST, MAIL_HOST, MAILPIT_UI_URL
 - **Features**: Captures all outgoing email for testing, provides web UI
+
+### Laravel Reverb (`reverb_service.go`)
+- **WebSocket server**: Real-time broadcasting for Laravel applications
+- **Configuration**: `reverb = true` (only for Laravel/Lumen apps)
+- **Singleton pattern**: One Reverb service shared by all Laravel apps
+- **Custom settings**: 
+  - `reverb_port`: WebSocket port (default: 8080)
+  - `reverb_app_id`, `reverb_app_key`, `reverb_app_secret`: App credentials
+- **Auto-configuration**: Sets BROADCAST_DRIVER, VITE_REVERB_* variables
+- **Health checks**: Monitors WebSocket server availability
+- **Shared code**: Mounts application code for artisan commands

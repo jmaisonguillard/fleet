@@ -1,0 +1,64 @@
+# Advanced Laravel application with all Phase 1 features
+project = "laravel-app"
+
+[[services]]
+name = "api"
+image = "nginx"
+port = 8080
+domain = "api.test"
+folder = "./laravel"
+
+# PHP runtime configuration
+runtime = "php:8.3"
+framework = "laravel"
+
+# Database with extensions
+database = "postgres:16"
+database_name = "laravel_db"
+database_user = "laravel"
+database_password = "secret"
+database_extensions = ["postgis", "pgvector", "uuid-ossp"]
+
+# Cache
+cache = "redis:7.4"
+cache_password = "redis_secret"
+
+# Search
+search = "meilisearch:1.6"
+search_api_key = "master_key_123"
+
+# Email testing
+email = "mailpit:1.20"
+
+# Laravel Reverb WebSocket server
+reverb = true
+reverb_port = 8080
+reverb_app_id = "my-app"
+reverb_app_key = "app-key-123"
+reverb_app_secret = "app-secret-456"
+
+# Enable Xdebug for development
+debug = true
+debug_port = 9003
+
+[services.env]
+APP_NAME = "Laravel Advanced"
+APP_ENV = "local"
+APP_DEBUG = "true"
+APP_KEY = "base64:your-app-key-here"
+
+[[services]]
+name = "worker"
+image = "php:8.3-cli"
+folder = "./laravel"
+command = "php artisan queue:work --sleep=3 --tries=3"
+
+# Share the same database
+database = "postgres:16"
+
+# Share the same cache
+cache = "redis:7.4"
+
+[services.env]
+APP_ENV = "local"
+QUEUE_CONNECTION = "redis"

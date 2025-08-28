@@ -120,6 +120,11 @@ func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
 	case "wordpress":
 		phpService.Environment["WP_ENV"] = "production"
 	}
+	
+	// Configure Xdebug if debug mode is enabled
+	if svc.Debug {
+		configureXdebug(&phpService, svc)
+	}
 
 	// Add any custom environment variables
 	if svc.Environment != nil {
@@ -242,4 +247,51 @@ func writeNginxPHPConfigWithVersion(serviceName, framework, phpVersion string) (
 // Helper function to write file
 func writeFile(path string, data []byte, perm os.FileMode) error {
 	return os.WriteFile(path, data, perm)
+}
+
+// configureXdebug adds Xdebug configuration to PHP service
+func configureXdebug(phpService *DockerService, svc *Service) {
+	// Default Xdebug port
+	debugPort := 9003
+	if svc.DebugPort > 0 {
+		debugPort = svc.DebugPort
+	}
+	
+	// Use a PHP image with Xdebug pre-installed or add installation command
+	// For simplicity, we'll use environment variables to configure Xdebug
+	// In production, you might want to use a custom Dockerfile
+	
+	// Xdebug 3.x configuration (modern version)
+	phpService.Environment["XDEBUG_MODE"] = "develop,debug,coverage"
+	phpService.Environment["XDEBUG_CONFIG"] = fmt.Sprintf("client_host=host.docker.internal client_port=%d", debugPort)
+	phpService.Environment["XDEBUG_SESSION"] = "1"
+	
+	// Additional Xdebug environment variables
+	phpService.Environment["PHP_IDE_CONFIG"] = fmt.Sprintf("serverName=%s", svc.Name)
+	phpService.Environment["XDEBUG_TRIGGER"] = "yes"
+	
+	// Install Xdebug via command if not present
+	// This modifies the command to install Xdebug before starting PHP-FPM
+	installCmd := `sh -c "
+		if ! php -m | grep -q xdebug; then
+			echo 'Installing Xdebug...';
+			apk add --no-cache $PHPIZE_DEPS && \
+			pecl install xdebug && \
+			docker-php-ext-enable xdebug && \
+			echo 'xdebug.mode=develop,debug,coverage' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+			echo 'xdebug.client_host=host.docker.internal' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+			echo 'xdebug.client_port=%d' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+			echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+			echo 'xdebug.log=/tmp/xdebug.log' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini;
+		fi;
+		php-fpm
+	"`
+	
+	phpService.Command = fmt.Sprintf(installCmd, debugPort)
+	
+	// Add host.docker.internal for Linux (it's automatic on Mac/Windows)
+	if phpService.ExtraHosts == nil {
+		phpService.ExtraHosts = []string{}
+	}
+	phpService.ExtraHosts = append(phpService.ExtraHosts, "host.docker.internal:host-gateway")
 }

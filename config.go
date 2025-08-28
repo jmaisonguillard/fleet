@@ -44,6 +44,15 @@ type Service struct {
 	Email           string        `toml:"email,omitempty" yaml:"email,omitempty" json:"email,omitempty"`
 	EmailUsername   string        `toml:"email_username,omitempty" yaml:"email_username,omitempty" json:"email_username,omitempty"`
 	EmailPassword   string        `toml:"email_password,omitempty" yaml:"email_password,omitempty" json:"email_password,omitempty"`
+	Reverb          bool          `toml:"reverb,omitempty" yaml:"reverb,omitempty" json:"reverb,omitempty"`
+	ReverbHost      string        `toml:"reverb_host,omitempty" yaml:"reverb_host,omitempty" json:"reverb_host,omitempty"`
+	ReverbPort      int           `toml:"reverb_port,omitempty" yaml:"reverb_port,omitempty" json:"reverb_port,omitempty"`
+	ReverbAppId     string        `toml:"reverb_app_id,omitempty" yaml:"reverb_app_id,omitempty" json:"reverb_app_id,omitempty"`
+	ReverbAppKey    string        `toml:"reverb_app_key,omitempty" yaml:"reverb_app_key,omitempty" json:"reverb_app_key,omitempty"`
+	ReverbAppSecret string        `toml:"reverb_app_secret,omitempty" yaml:"reverb_app_secret,omitempty" json:"reverb_app_secret,omitempty"`
+	Debug           bool          `toml:"debug,omitempty" yaml:"debug,omitempty" json:"debug,omitempty"`
+	DebugPort       int           `toml:"debug_port,omitempty" yaml:"debug_port,omitempty" json:"debug_port,omitempty"`
+	DatabaseExtensions []string   `toml:"database_extensions,omitempty" yaml:"database_extensions,omitempty" json:"database_extensions,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
 	Needs       []string          `toml:"needs,omitempty" yaml:"needs,omitempty" json:"needs,omitempty"`

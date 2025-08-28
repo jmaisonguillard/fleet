@@ -28,6 +28,9 @@ type DockerService struct {
 	DependsOn   []string          `yaml:"depends_on,omitempty"`
 	Command     string            `yaml:"command,omitempty"`
 	HealthCheck *HealthCheckYAML  `yaml:"healthcheck,omitempty"`
+	WorkingDir  string            `yaml:"working_dir,omitempty"`
+	Labels      map[string]string `yaml:"labels,omitempty"`
+	ExtraHosts  []string          `yaml:"extra_hosts,omitempty"`
 }
 
 type HealthCheckYAML struct {
@@ -248,6 +251,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if svc.Email != "" {
 			addEmailService(compose, &svc, config)
 		}
+		
+		// Add Laravel Reverb service if specified (for Laravel/Lumen apps)
+		if svc.Reverb && (svc.Framework == "laravel" || svc.Framework == "lumen") {
+			addReverbService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions
@@ -280,8 +288,32 @@ func generateDockerCompose(config *Config) *DockerCompose {
 
 	// Add nginx proxy if needed
 	addNginxProxyToCompose(compose, config)
+	
+	// Write PostgreSQL initialization scripts if needed
+	writePostgresInitScripts(compose)
 
 	return compose
+}
+
+func writePostgresInitScripts(compose *DockerCompose) {
+	// Check all services for PostgreSQL init scripts in labels
+	for _, service := range compose.Services {
+		if service.Labels != nil {
+			if script, ok := service.Labels["fleet.postgres.init.script"]; ok {
+				if path, ok := service.Labels["fleet.postgres.init.path"]; ok {
+					// Write the init script to the specified path
+					os.WriteFile(path, []byte(script), 0644)
+					// Remove the labels after writing (they're not needed in docker-compose.yml)
+					delete(service.Labels, "fleet.postgres.init.script")
+					delete(service.Labels, "fleet.postgres.init.path")
+					// If labels map is empty, set it to nil
+					if len(service.Labels) == 0 {
+						service.Labels = nil
+					}
+				}
+			}
+		}
+	}
 }
 
 func writeDockerCompose(compose *DockerCompose, filename string) error {
