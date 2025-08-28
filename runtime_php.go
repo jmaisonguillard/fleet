@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -74,75 +73,19 @@ func getPHPImage(version string) string {
 
 // addPHPFPMService adds a PHP-FPM service for nginx services with PHP runtime
 func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
-	lang, version := parsePHPRuntime(svc.Runtime)
-	if lang != "php" {
+	// Use the PHPConfigurator to build the PHP service
+	configurator := NewPHPConfigurator()
+	phpService := configurator.BuildPHPService(svc)
+	
+	if phpService == nil {
+		// Not a PHP service
 		return
 	}
-
-	// For now, create per-service PHP containers to avoid volume conflicts
-	// Future optimization: use shared containers with different document roots
+	
 	phpServiceName := fmt.Sprintf("%s-php", svc.Name)
-	phpImage := getPHPImage(version)
-
-	// Create PHP-FPM service
-	phpService := DockerService{
-		Image:    phpImage,
-		Networks: []string{"fleet-network"},
-		Restart:  "unless-stopped",
-		Volumes:  []string{},
-		Environment: map[string]string{
-			"PHP_FPM_USER":  "www-data",
-			"PHP_FPM_GROUP": "www-data",
-		},
-	}
-
-	// Mount the same folder as the nginx service
-	// For shared PHP containers, we mount the current service's folder
-	// Each nginx service will have its own config pointing to this shared PHP container
-	if svc.Folder != "" {
-		phpService.Volumes = append(phpService.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
-	}
 	
-	// Add framework-specific environment variables
-	framework := svc.Framework
-	if framework == "" {
-		framework = detectPHPFramework(svc.Folder)
-	}
-	
-	// Add framework-specific settings
-	switch strings.ToLower(framework) {
-	case "laravel", "lumen":
-		phpService.Environment["LARAVEL_ENV"] = "production"
-		phpService.Environment["APP_ENV"] = "production"
-	case "symfony":
-		phpService.Environment["APP_ENV"] = "prod"
-		phpService.Environment["APP_DEBUG"] = "0"
-	case "wordpress":
-		phpService.Environment["WP_ENV"] = "production"
-	}
-	
-	// Configure Xdebug if debug mode is enabled
-	if svc.Debug {
-		configureXdebug(&phpService, svc)
-	}
-
-	// Add any custom environment variables
-	if svc.Environment != nil {
-		for k, v := range svc.Environment {
-			phpService.Environment[k] = v
-		}
-	}
-
-	// Add health check for PHP-FPM
-	phpService.HealthCheck = &HealthCheckYAML{
-		Test:     []string{"CMD-SHELL", "php-fpm-healthcheck || exit 1"},
-		Interval: "30s",
-		Timeout:  "5s",
-		Retries:  3,
-	}
-
 	// Add the PHP service to compose
-	compose.Services[phpServiceName] = phpService
+	compose.Services[phpServiceName] = *phpService
 
 	// Update the nginx service to depend on PHP-FPM
 	if nginxSvc, exists := compose.Services[svc.Name]; exists {
@@ -220,28 +163,16 @@ func generateNginxPHPConfigWithService(phpServiceName string) string {
 
 // writeNginxPHPConfig writes the nginx configuration for PHP
 func writeNginxPHPConfig(serviceName string, framework string) (string, error) {
-	return writeNginxPHPConfigWithVersion(serviceName, framework, "")
+	// Use the PHPConfigurator to write nginx config
+	configurator := NewPHPConfigurator()
+	return configurator.WriteNginxConfig(serviceName, framework)
 }
 
 // writeNginxPHPConfigWithVersion writes nginx config with specific PHP version
-func writeNginxPHPConfigWithVersion(serviceName, framework, phpVersion string) (string, error) {
-	configPath := filepath.Join(".fleet", fmt.Sprintf("%s-nginx.conf", serviceName))
-	
-	// Get framework-specific config or fallback to generic
-	var config string
-	if framework != "" {
-		config = getNginxConfigForFrameworkWithVersion(serviceName, framework, phpVersion)
-	} else if phpVersion != "" {
-		config = generateNginxPHPConfigWithVersion(serviceName, phpVersion)
-	} else {
-		config = generateNginxPHPConfig(serviceName)
-	}
-	
-	if err := writeFile(configPath, []byte(config), 0644); err != nil {
-		return "", fmt.Errorf("failed to write nginx PHP config: %w", err)
-	}
-	
-	return configPath, nil
+func writeNginxPHPConfigWithVersion(serviceName, framework, _ string) (string, error) {
+	// For compatibility, just use the standard method
+	// The version is already handled in the runtime configuration
+	return writeNginxPHPConfig(serviceName, framework)
 }
 
 // Helper function to write file

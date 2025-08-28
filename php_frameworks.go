@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 )
 
 // SupportedPHPFrameworks lists all supported PHP frameworks
@@ -20,68 +18,9 @@ var SupportedPHPFrameworks = []string{
 
 // detectPHPFramework auto-detects the PHP framework from project files
 func detectPHPFramework(folder string) string {
-	if folder == "" {
-		return ""
-	}
-
-	// Laravel detection
-	if fileExists(filepath.Join(folder, "artisan")) &&
-		fileExists(filepath.Join(folder, "composer.json")) {
-		if content, err := os.ReadFile(filepath.Join(folder, "composer.json")); err == nil {
-			if strings.Contains(string(content), "laravel/framework") {
-				return "laravel"
-			}
-		}
-	}
-
-	// Symfony detection
-	if fileExists(filepath.Join(folder, "symfony.lock")) ||
-		fileExists(filepath.Join(folder, "bin/console")) {
-		return "symfony"
-	}
-
-	// WordPress detection
-	if fileExists(filepath.Join(folder, "wp-config.php")) ||
-		fileExists(filepath.Join(folder, "wp-config-sample.php")) ||
-		fileExists(filepath.Join(folder, "wp-load.php")) {
-		return "wordpress"
-	}
-
-	// Drupal detection
-	if fileExists(filepath.Join(folder, "index.php")) {
-		if content, err := os.ReadFile(filepath.Join(folder, "index.php")); err == nil {
-			if strings.Contains(string(content), "Drupal") {
-				return "drupal"
-			}
-		}
-	}
-
-	// CodeIgniter detection
-	if fileExists(filepath.Join(folder, "system/core/CodeIgniter.php")) ||
-		fileExists(filepath.Join(folder, "spark")) {
-		return "codeigniter"
-	}
-
-	// Slim Framework detection
-	if fileExists(filepath.Join(folder, "composer.json")) {
-		if content, err := os.ReadFile(filepath.Join(folder, "composer.json")); err == nil {
-			if strings.Contains(string(content), "slim/slim") {
-				return "slim"
-			}
-		}
-	}
-
-	// Lumen detection
-	if fileExists(filepath.Join(folder, "artisan")) &&
-		fileExists(filepath.Join(folder, "composer.json")) {
-		if content, err := os.ReadFile(filepath.Join(folder, "composer.json")); err == nil {
-			if strings.Contains(string(content), "laravel/lumen-framework") {
-				return "lumen"
-			}
-		}
-	}
-
-	return ""
+	// Use the PHPConfigurator for framework detection
+	configurator := NewPHPConfigurator()
+	return configurator.DetectFramework(folder)
 }
 
 // fileExists checks if a file exists
@@ -92,31 +31,18 @@ func fileExists(path string) bool {
 
 // getNginxConfigForFramework returns the appropriate nginx configuration for a PHP framework
 func getNginxConfigForFramework(serviceName, framework string) string {
-	return getNginxConfigForFrameworkWithVersion(serviceName, framework, "")
+	// Use the PHPConfigurator for nginx config generation
+	configurator := NewPHPConfigurator()
+	return configurator.GenerateNginxConfig(serviceName, framework)
 }
 
-// getNginxConfigForFrameworkWithVersion returns nginx config for framework with specific PHP version
+// getNginxConfigForFrameworkWithVersion returns nginx config for framework with specific PHP version  
 func getNginxConfigForFrameworkWithVersion(serviceName, framework, phpVersion string) string {
-	// Using per-service PHP containers for now
-	phpServiceName := fmt.Sprintf("%s-php", serviceName)
-	
-	switch strings.ToLower(framework) {
-	case "laravel", "lumen":
-		return generateLaravelNginxConfig(phpServiceName)
-	case "symfony":
-		return generateSymfonyNginxConfig(phpServiceName)
-	case "wordpress":
-		return generateWordPressNginxConfig(phpServiceName)
-	case "drupal":
-		return generateDrupalNginxConfig(phpServiceName)
-	case "codeigniter":
-		return generateCodeIgniterNginxConfig(phpServiceName)
-	case "slim":
-		return generateSlimNginxConfig(phpServiceName)
-	default:
-		// Fallback to generic PHP config
-		return generateNginxPHPConfig(serviceName)
-	}
+	// Suppress unused parameter warning - kept for compatibility
+	_ = phpVersion
+	// For compatibility, just use the standard method
+	// The version is already handled in the runtime configuration
+	return getNginxConfigForFramework(serviceName, framework)
 }
 
 // generateLaravelNginxConfig generates nginx config for Laravel
