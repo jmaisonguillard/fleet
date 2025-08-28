@@ -1,0 +1,22 @@
+# Email testing with authentication
+project = "secure-email"
+
+[[services]]
+name = "webapp"
+image = "php:8.2-apache"
+port = 80
+domain = "app.test"
+folder = "app"
+email = "mailpit:1.20"
+email_username = "smtp_user"
+email_password = "smtp_secure_pass"
+environment = { APP_ENV = "staging" }
+
+[[services]]
+name = "worker"
+image = "php:8.2-cli"
+folder = "app"
+email = "mailpit"  # Shares same Mailpit with webapp (singleton)
+# Will use the same SMTP credentials configured by webapp
+command = "php artisan queue:work"
+needs = ["webapp"]

@@ -243,6 +243,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		if svc.Compat != "" {
 			addCompatService(compose, &svc, config)
 		}
+		
+		// Add email service if specified
+		if svc.Email != "" {
+			addEmailService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions
