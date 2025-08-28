@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -53,6 +55,9 @@ type DockerVolume struct {
 }
 
 func generateDockerCompose(config *Config) *DockerCompose {
+	// Ensure .fleet directory exists for generated configs
+	os.MkdirAll(".fleet", 0755)
+	
 	compose := &DockerCompose{
 		Version:  "3.8",
 		Services: make(map[string]DockerService),
@@ -101,8 +106,19 @@ func generateDockerCompose(config *Config) *DockerCompose {
 
 		// Handle volumes
 		if svc.Folder != "" {
-			// If it's an nginx image, map folder to nginx's default html directory
-			if strings.Contains(strings.ToLower(svc.Image), "nginx") {
+			// If it's an nginx image with PHP runtime, set up for PHP
+			if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
+				// For PHP, nginx serves from /var/www/html
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
+				
+				// Generate and mount PHP nginx config
+				configPath, err := writeNginxPHPConfig(svc.Name)
+				if err == nil {
+					absPath, _ := filepath.Abs(configPath)
+					service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/etc/nginx/conf.d/default.conf:ro", absPath))
+				}
+			} else if strings.Contains(strings.ToLower(svc.Image), "nginx") {
+				// Regular nginx service
 				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/usr/share/nginx/html", svc.Folder))
 			} else {
 				// For other images, map to /app
@@ -178,6 +194,11 @@ func generateDockerCompose(config *Config) *DockerCompose {
 		}
 
 		compose.Services[svc.Name] = service
+		
+		// Add PHP-FPM service if this nginx service has PHP runtime
+		if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
+			addPHPFPMService(compose, &svc, config)
+		}
 	}
 
 	// Create volume definitions

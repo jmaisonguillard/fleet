@@ -5,4 +5,5 @@ name = "web"
 image = "nginx:alpine"
 port = 80
 domain = "rian.test"
+runtime = "php:8.4"
 folder = "./website"
