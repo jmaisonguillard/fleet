@@ -1,4 +1,4 @@
-.PHONY: build clean install run dev deps
+.PHONY: build build-all clean deps install uninstall test dev
 
 # Binary name
 BINARY_NAME=fleet
@@ -9,12 +9,12 @@ GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Build flags
 LDFLAGS=-ldflags "-s -w"
 
+# Default target
 build:
 	@echo "🔨 Building fleet binary..."
 	@mkdir -p $(BUILD_DIR)
@@ -51,59 +51,19 @@ deps:
 	@echo "✅ Dependencies installed"
 
 install: build
-	@echo "📦 Installing fleet..."
+	@echo "📦 Installing fleet to /usr/local/bin..."
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/
-	@echo "✅ Fleet installed to /usr/local/bin/$(BINARY_NAME)"
+	@echo "✅ Fleet installed successfully"
 
 uninstall:
 	@echo "🗑️ Uninstalling fleet..."
 	@sudo rm -f /usr/local/bin/$(BINARY_NAME)
 	@echo "✅ Fleet uninstalled"
 
-# Development helpers
-dev:
-	@$(GOCMD) run . $(ARGS)
-
 test:
+	@echo "🧪 Running tests..."
 	@$(GOTEST) -v ./...
 
-init:
-	@./$(BUILD_DIR)/$(BINARY_NAME) init
-
-up: build
-	@./$(BUILD_DIR)/$(BINARY_NAME) up
-
-down:
-	@./$(BUILD_DIR)/$(BINARY_NAME) down
-
-status:
-	@./$(BUILD_DIR)/$(BINARY_NAME) status
-
-# DNS Setup
-dns-setup:
-	@echo "🌐 Setting up Fleet DNS for .test domain..."
-	@./scripts/setup-dns.sh
-	@echo "✅ DNS setup complete"
-
-dns-remove:
-	@echo "🗑️ Removing Fleet DNS configuration..."
-	@./scripts/setup-dns.sh remove
-	@echo "✅ DNS configuration removed"
-
-dns-start:
-	@echo "🚀 Starting dnsmasq container..."
-	@docker-compose -f templates/compose/docker-compose.dnsmasq.yml up -d
-	@echo "✅ Dnsmasq started"
-
-dns-stop:
-	@echo "🛑 Stopping dnsmasq container..."
-	@docker-compose -f templates/compose/docker-compose.dnsmasq.yml down
-	@echo "✅ Dnsmasq stopped"
-
-dns-test:
-	@echo "🧪 Testing DNS configuration..."
-	@./scripts/test-dns.sh
-
-dns-logs:
-	@echo "📋 Showing dnsmasq logs..."
-	@docker logs dnsmasq -f
+# Development helper - runs the application without building
+dev:
+	@$(GOCMD) run . $(ARGS)
