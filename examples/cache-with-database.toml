@@ -1,0 +1,43 @@
+# Complete application with cache and database
+project = "fullstack-app"
+
+# Web application with Redis cache and MySQL database
+[[services]]
+name = "webapp"
+image = "php:8.2-apache"
+port = 80
+domain = "app.test"
+folder = "app"
+runtime = "php:8.2"
+framework = "laravel"
+database = "mysql:8.0"
+database_name = "app_db"
+database_user = "app_user"
+database_password = "app_pass"
+database_root_password = "root_pass"
+cache = "redis:7.2"
+cache_password = "redis_pass"
+cache_max_memory = "512m"
+environment = { APP_ENV = "local", APP_DEBUG = "true" }
+
+# Background worker sharing same cache and database
+[[services]]
+name = "queue-worker"
+image = "php:8.2-cli"
+folder = "app"
+database = "mysql:8.0"  # Shares database with webapp
+cache = "redis:7.2"     # Shares Redis with webapp
+cache_password = "redis_pass"
+command = "php artisan queue:work"
+needs = ["webapp"]
+
+# API service with its own cache but shared database
+[[services]]
+name = "api"
+image = "node:20"
+port = 3000
+folder = "api"
+database = "mysql:8.0"  # Shares database
+cache = "memcached:1.6" # Different cache system
+cache_max_memory = "256m"
+command = "npm start"

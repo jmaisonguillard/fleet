@@ -1,0 +1,44 @@
+# Mixed cache types and versions
+project = "microservices"
+
+# Service using Redis 7.2 for cache
+[[services]]
+name = "user-service"
+image = "golang:1.21"
+port = 8001
+folder = "services/users"
+cache = "redis:7.2"
+cache_password = "redis_secure_pass"
+cache_max_memory = "512m"
+command = "go run main.go"
+
+# Service using older Redis 7.0
+[[services]]
+name = "legacy-service"
+image = "python:3.9"
+port = 8002
+folder = "services/legacy"
+cache = "redis:7.0"  # Different Redis version - gets own container
+cache_password = "legacy_pass"
+cache_max_memory = "256m"
+command = "python app.py"
+
+# Service using Memcached for sessions
+[[services]]
+name = "session-service"
+image = "node:18"
+port = 8003
+folder = "services/sessions"
+cache = "memcached:1.6"
+cache_max_memory = "128m"
+command = "node server.js"
+
+# Service sharing Redis 7.2 with user-service
+[[services]]
+name = "notification-service"
+image = "node:18"
+port = 8004
+folder = "services/notifications"
+cache = "redis:7.2"  # Same version as user-service - shares container
+cache_password = "redis_secure_pass"
+command = "node index.js"

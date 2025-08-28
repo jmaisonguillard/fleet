@@ -1,0 +1,20 @@
+# Basic Redis cache configuration
+project = "webapp"
+
+[[services]]
+name = "api"
+image = "python:3.11"
+port = 8000
+folder = "api"
+cache = "redis:7.2"
+cache_password = "secret123"
+cache_max_memory = "256m"
+command = "python app.py"
+
+[[services]]
+name = "worker"
+image = "python:3.11"
+folder = "worker"
+cache = "redis:7.2"  # Shares the same Redis container as api
+cache_password = "secret123"
+command = "python worker.py"
