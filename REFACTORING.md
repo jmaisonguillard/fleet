@@ -68,23 +68,27 @@ type ServiceProvider interface {
 - [x] Implement for `EmailServiceProvider`
 - [x] Create service registry/factory pattern
 
-### ❏ 2.2 Unify Shared Container Naming
+### ✅ 2.2 Unify Shared Container Naming
 **Files**: Multiple service files  
 **Problem**: Each service has its own naming function  
 **Solution**: Create unified naming strategy
 
-- [ ] Create `SharedServiceNamer` type
-- [ ] Implement consistent naming patterns
-- [ ] Add name collision detection
+- [x] Create `SharedServiceNamer` type
+- [x] Implement consistent naming patterns
+- [x] Add name collision detection
+- [x] Support for singleton services
+- [x] Version normalization and cleaning
 
-### ❏ 2.3 Centralize Environment Variable Patterns
+### ✅ 2.3 Centralize Environment Variable Patterns
 **Files**: All service files  
 **Problem**: Duplicated environment variable setting logic  
 **Solution**: Create environment builder
 
-- [ ] Create `EnvBuilder` type with fluent API
-- [ ] Standard patterns for connection strings
-- [ ] Consistent naming conventions
+- [x] Create `EnvBuilder` type with fluent API
+- [x] Standard patterns for connection strings
+- [x] Consistent naming conventions
+- [x] `ConnectionStringBuilder` for all service types
+- [x] Support for database, cache, mail, S3, and search connections
 
 ## Priority 3: Code Organization
 
@@ -177,6 +181,8 @@ type ServiceProvider interface {
 - ✅ 1.1 Refactor `generateDockerCompose()` Function (reduced from 236 to 52 lines!)
 - ✅ 1.2 Extract Database Password Configuration
 - ✅ 2.1 Create Service Provider Interface (all 5 providers implemented)
+- ✅ 2.2 Unify Shared Container Naming (SharedServiceNamer with collision detection)
+- ✅ 2.3 Centralize Environment Variable Patterns (EnvBuilder with fluent API)
 
 ### In Progress
 - None
