@@ -190,6 +190,33 @@ func (suite *PHPRuntimeTestSuite) TestNginxVolumeWithPHP() {
 	suite.True(hasCorrectVolume, "nginx with PHP should mount to /var/www/html")
 }
 
+func (suite *PHPRuntimeTestSuite) TestPHPFPMServiceDependency() {
+	// Test that nginx service depends on PHP-FPM service
+	config := &Config{
+		Project: "test",
+		Services: []Service{
+			{
+				Name:    "web",
+				Image:   "nginx:alpine",
+				Runtime: "php:8.4",
+				Folder:  "./app",
+			},
+		},
+	}
+	
+	compose := generateDockerCompose(config)
+	
+	// Check nginx service has PHP-FPM dependency
+	nginxService, exists := compose.Services["web"]
+	suite.True(exists)
+	suite.Contains(nginxService.DependsOn, "web-php")
+	
+	// Check PHP-FPM service was created
+	phpService, exists := compose.Services["web-php"]
+	suite.True(exists)
+	suite.Equal("php:8.4-fpm-alpine", phpService.Image)
+}
+
 func TestPHPRuntimeSuite(t *testing.T) {
 	suite.Run(t, new(PHPRuntimeTestSuite))
 }
