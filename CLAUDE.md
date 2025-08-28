@@ -15,6 +15,24 @@ make build
 # Build for all platforms (Linux, macOS, Windows - AMD64/ARM64)
 make build-all
 
+# Clean build artifacts and .fleet directory
+make clean
+
+# Download and tidy dependencies
+make deps
+
+# Install to /usr/local/bin
+make install
+
+# Uninstall from /usr/local/bin
+make uninstall
+
+# Development mode (run without building)
+make dev ARGS="up -d"
+
+# Alternative build using build.sh (handles Go installation)
+./build.sh
+
 # Run all tests
 make test
 # Or with Go directly
@@ -23,16 +41,24 @@ go test -v ./...
 # Run specific test suite
 go test -v -run TestComposeSuite ./...
 go test -v -run TestDNSSuite ./...
+go test -v -run TestPHPRuntimeSuite ./...
+go test -v -run TestDatabaseServicesSuite ./...
+go test -v -run TestNginxSuite ./...
+go test -v -run TestCacheServicesSuite ./...
+go test -v -run TestSearchServicesSuite ./...
+go test -v -run TestCompatServicesSuite ./...
+go test -v -run TestEmailServiceSuite ./...
+
+# Run integration tests (disabled by default)
+RUN_INTEGRATION=1 go test -v -run TestIntegration ./...
+
+# Run benchmarks
+go test -bench=. -benchmem ./...
 
 # Run tests with coverage
 go test -v -coverprofile=coverage.out ./...
 go tool cover -func=coverage.out
-
-# Install to /usr/local/bin
-make install
-
-# Development mode (run without building)
-make dev ARGS="up -d"
+go tool cover -html=coverage.out  # View in browser
 ```
 
 ## Architecture and Code Structure
@@ -72,23 +98,36 @@ make dev ARGS="up -d"
 
 - **Test Framework**: Testify suite-based testing
 - **Docker Mocking**: Full Docker mock system in `docker_mock_test.go`
-  - Creates fake docker executable in PATH
-  - Simulates compose, ps, logs commands
+  - Creates fake docker executable in PATH during tests
+  - Simulates compose (up/down/ps/restart), docker ps, docker logs commands
   - Enables testing without Docker installed
+  - Mock supports various output patterns for different commands
+- **Integration Tests**: 
+  - Disabled by default, enable with `RUN_INTEGRATION=1`
+  - Use `MockDockerForTest()` for full Docker simulation
+  - Skip automatically in CI environments unless explicitly enabled
+- **Benchmarking**: Performance tests for compose generation and config loading
 - **Test Helpers**: `test_helpers.go` provides utilities for temp files and sample configs
+- **CI Detection**: `IsTestEnvironment()` function detects CI/testing environments
 
 ### Important Implementation Details
 
 1. **Network Naming**: Always creates "fleet-network" (not project-based naming)
 
-2. **Port Mapping**: Maps ports as `port:port` (e.g., 8080:8080, not 8080:80)
+2. **Port Mapping**: 
+   - Supports both `port` (single) and `ports` (array) fields
+   - Single port maps as `port:port` (e.g., 8080:8080)
+   - Ports array uses Docker format ("8080:80")
 
-3. **Environment Variables**: Stored as maps, not "key=value" strings
+3. **Environment Variables**: 
+   - Stored as maps, not "key=value" strings
+   - Automatic service-to-service dependency environment variables
 
 4. **Cross-Platform Compatibility**:
    - Script detection: `getScriptPath()` checks OS and selects .ps1 or .sh
    - Path handling: Use `filepath` package for OS-agnostic paths
    - Embedded resources work across all platforms
+   - Build system supports Linux/macOS/Windows (AMD64/ARM64)
 
 5. **DNS Setup Flow**:
    ```
@@ -201,3 +240,45 @@ if _, exists := compose.Services[serviceName]; exists {
 }
 // Create new shared service
 ```
+
+### Service Naming Conventions
+- **Shared services**: `{type}-{version}` format (e.g., `mysql-80`, `redis-72`)
+- **PHP containers**: `{service}-php` format (e.g., `web-php`)
+- **Volume names**: `{service}-data` format (e.g., `postgres-15-data`)
+- **Singleton services**: Fixed names (e.g., `mailpit` for email testing)
+
+## Additional Service Types
+
+### Cache Services (`cache_services.go`)
+- **Supported**: Redis (6.0-7.4), Memcached (1.6.x)
+- **Configuration**: `cache = "redis:7.2"` or `cache = "memcached:1.6"`
+- **Shared containers**: Services using same cache version share containers
+- **Environment vars**: Sets REDIS_HOST, REDIS_URL, MEMCACHED_HOST, CACHE_DRIVER
+- **Redis features**: Optional password auth, AOF persistence, max memory limits
+- **Memcached features**: Memory limits, connection limits
+
+### Search Services (`search_services.go`)
+- **Supported**: Meilisearch (1.0-1.6), Typesense (0.24-27.1)
+- **Configuration**: `search = "meilisearch:1.6"` or `search = "typesense:27.1"`
+- **Meilisearch**: Master key auth, production/dev modes, analytics disabled
+- **Typesense**: API key auth (required), CORS enabled
+- **Environment vars**: MEILISEARCH_HOST, TYPESENSE_URL, SEARCH_ENGINE, etc.
+- **Health checks**: Each search service has appropriate health monitoring
+
+### Compatibility Services (`compat_services.go`)
+- **Supported**: MinIO (S3-compatible storage)
+- **Configuration**: `compat = "minio:2024"`
+- **MinIO features**: S3 API compatibility, console UI, access/secret keys
+- **Environment vars**: S3_ENDPOINT, AWS_ACCESS_KEY_ID, MINIO_ENDPOINT
+- **Ports**: API on 9000, Console on 9001
+- **Region support**: Configurable AWS region emulation
+
+### Email Services (`email_service.go`)
+- **Supported**: Mailpit (email testing, v1.13-1.20)
+- **Configuration**: `email = "mailpit:1.20"`
+- **Singleton pattern**: Only one email service per project
+- **SMTP port**: 1025 (configurable)
+- **Web UI port**: 8025 for viewing captured emails
+- **Authentication**: Optional SMTP username/password
+- **Environment vars**: SMTP_HOST, MAIL_HOST, MAILPIT_UI_URL
+- **Features**: Captures all outgoing email for testing, provides web UI
