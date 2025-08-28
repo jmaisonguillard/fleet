@@ -1,4 +1,4 @@
-module github.com/fleet/fleet-cli
+module github.com/fleet/fleet
 
 go 1.21
 

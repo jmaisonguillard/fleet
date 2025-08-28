@@ -1,0 +1,26 @@
+# Binaries
+/build/
+/fleet
+*.exe
+
+# Go build artifacts
+*.test
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Fleet runtime
+.fleet/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.log
+coverage.txt
+coverage.html
