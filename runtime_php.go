@@ -89,6 +89,24 @@ func addPHPFPMService(compose *DockerCompose, svc *Service, config *Config) {
 		// PHP files need to be in the same location as nginx expects
 		phpService.Volumes = append(phpService.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
 	}
+	
+	// Add framework-specific environment variables
+	framework := svc.Framework
+	if framework == "" {
+		framework = detectPHPFramework(svc.Folder)
+	}
+	
+	// Add framework-specific settings
+	switch strings.ToLower(framework) {
+	case "laravel", "lumen":
+		phpService.Environment["LARAVEL_ENV"] = "production"
+		phpService.Environment["APP_ENV"] = "production"
+	case "symfony":
+		phpService.Environment["APP_ENV"] = "prod"
+		phpService.Environment["APP_DEBUG"] = "0"
+	case "wordpress":
+		phpService.Environment["WP_ENV"] = "production"
+	}
 
 	// Add any custom environment variables
 	if svc.Environment != nil {
@@ -169,9 +187,16 @@ func generateNginxPHPConfig(serviceName string) string {
 }
 
 // writeNginxPHPConfig writes the nginx configuration for PHP
-func writeNginxPHPConfig(serviceName string) (string, error) {
+func writeNginxPHPConfig(serviceName string, framework string) (string, error) {
 	configPath := filepath.Join(".fleet", fmt.Sprintf("%s-nginx.conf", serviceName))
-	config := generateNginxPHPConfig(serviceName)
+	
+	// Get framework-specific config or fallback to generic
+	var config string
+	if framework != "" {
+		config = getNginxConfigForFramework(serviceName, framework)
+	} else {
+		config = generateNginxPHPConfig(serviceName)
+	}
 	
 	if err := writeFile(configPath, []byte(config), 0644); err != nil {
 		return "", fmt.Errorf("failed to write nginx PHP config: %w", err)

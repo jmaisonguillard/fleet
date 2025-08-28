@@ -1,0 +1,28 @@
+# WordPress site with MySQL database
+project = "wordpress-site"
+
+[[services]]
+name = "wordpress"
+image = "nginx:alpine"
+port = 80
+domain = "blog.test"
+runtime = "php:8.1"
+framework = "wordpress"  # Optional - auto-detected if wp-config.php exists
+folder = "./wordpress"
+[services.env]
+WORDPRESS_DB_HOST = "mysql"
+WORDPRESS_DB_NAME = "wordpress"
+WORDPRESS_DB_USER = "wordpress"
+WORDPRESS_DB_PASSWORD = "wordpress123"
+WORDPRESS_DEBUG = "false"
+
+[[services]]
+name = "mysql"
+image = "mysql:5.7"
+port = 3306
+password = "wordpress123"
+[services.env]
+MYSQL_DATABASE = "wordpress"
+MYSQL_USER = "wordpress"
+MYSQL_PASSWORD = "wordpress123"
+volumes = ["wp-db:/var/lib/mysql"]

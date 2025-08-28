@@ -160,8 +160,8 @@ func (suite *ComposeTestSuite) TestGenerateDockerComposeWithFolder() {
 	compose := generateDockerCompose(&config)
 	
 	webService := compose.Services["web"]
-	// Folder is mapped to /app according to implementation
-	suite.Contains(webService.Volumes, "./website:/app")
+	// Folder is mapped to /usr/share/nginx/html for nginx without PHP
+	suite.Contains(webService.Volumes, ".././website:/usr/share/nginx/html")
 	// Service with port gets auto-generated domain, so it should NOT expose ports directly
 	suite.Empty(webService.Ports, "Service with auto-generated domain should not expose ports")
 }

@@ -111,8 +111,14 @@ func generateDockerCompose(config *Config) *DockerCompose {
 				// For PHP, nginx serves from /var/www/html
 				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
 				
+				// Auto-detect framework if not specified
+				framework := svc.Framework
+				if framework == "" {
+					framework = detectPHPFramework(svc.Folder)
+				}
+				
 				// Generate and mount PHP nginx config
-				configPath, err := writeNginxPHPConfig(svc.Name)
+				configPath, err := writeNginxPHPConfig(svc.Name, framework)
 				if err == nil {
 					absPath, _ := filepath.Abs(configPath)
 					service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/etc/nginx/conf.d/default.conf:ro", absPath))
