@@ -75,8 +75,7 @@ func handleDNSSetup() {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		// Use PowerShell on Windows
-		psScript := filepath.Join(filepath.Dir(scriptPath), "setup-dns.ps1")
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", psScript, "setup")
+		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "setup")
 	} else {
 		// Use bash script on Unix-like systems
 		cmd = exec.Command(scriptPath)
@@ -291,8 +290,7 @@ func handleDNSRemove() {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		// Use PowerShell on Windows
-		psScript := filepath.Join(filepath.Dir(scriptPath), "setup-dns.ps1")
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", psScript, "remove")
+		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "remove")
 	} else {
 		// Use bash script on Unix-like systems
 		cmd = exec.Command(scriptPath, "remove")
@@ -319,14 +317,22 @@ func handleDNSRemove() {
 // Helper functions
 
 func getScriptPath() string {
+	// Determine the script name based on OS
+	var scriptName string
+	if runtime.GOOS == "windows" {
+		scriptName = "setup-dns.ps1"
+	} else {
+		scriptName = "setup-dns.sh"
+	}
+
 	// Try relative path first (from CLI directory)
-	scriptPath := filepath.Join("..", "scripts", "setup-dns.sh")
+	scriptPath := filepath.Join("..", "scripts", scriptName)
 	if _, err := os.Stat(scriptPath); err == nil {
 		return scriptPath
 	}
 
 	// Try from project root
-	scriptPath = filepath.Join("scripts", "setup-dns.sh")
+	scriptPath = filepath.Join("scripts", scriptName)
 	if _, err := os.Stat(scriptPath); err == nil {
 		return scriptPath
 	}
@@ -335,7 +341,7 @@ func getScriptPath() string {
 	exePath, err := os.Executable()
 	if err == nil {
 		exeDir := filepath.Dir(exePath)
-		scriptPath = filepath.Join(exeDir, "..", "scripts", "setup-dns.sh")
+		scriptPath = filepath.Join(exeDir, "..", "scripts", scriptName)
 		if _, err := os.Stat(scriptPath); err == nil {
 			return scriptPath
 		}
