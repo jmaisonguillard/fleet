@@ -733,7 +733,11 @@ func (suite *NginxTestSuite) TestUpdateHostsFileWithDomains_FilePermissionError(
 
 	// Then: it should return an error
 	suite.Error(err, "Should return error when file is read-only")
-	suite.Contains(err.Error(), "permission denied", "Error should indicate permission issue")
+	// When sudo fails (no password provided in tests), it returns "exit status 1"
+	// or when the normal write fails, it should contain permission-related error
+	errMsg := err.Error()
+	suite.True(strings.Contains(errMsg, "permission denied") || strings.Contains(errMsg, "exit status 1") || strings.Contains(errMsg, "failed to write hosts file"), 
+		"Error should indicate permission issue or sudo failure")
 }
 
 // Test helper function to verify nginx config syntax

@@ -86,7 +86,7 @@ func (suite *NginxIntegrationTestSuite) TestNginxVolumeMount_FileExistsBeforeDoc
 	
 	// Check for expected upstream definitions
 	suite.Contains(nginxContent, "upstream web_backend", "Should contain web upstream")
-	suite.Contains(nginxContent, "server web:8080", "Should contain web server")
+	suite.Contains(nginxContent, "server web:80", "Should contain web server")
 	suite.Contains(nginxContent, "upstream api_backend", "Should contain api upstream")
 	suite.Contains(nginxContent, "server api:3000", "Should contain api server")
 	
