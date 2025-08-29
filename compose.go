@@ -69,6 +69,10 @@ func buildServiceConfig(svc *Service) DockerService {
 		service.Image = svc.Image
 	} else if svc.Build != "" {
 		service.Build = svc.Build
+	} else if strings.HasPrefix(svc.Runtime, "php") {
+		// For PHP runtime, create PHP-FPM container
+		_, phpVersion := parsePHPRuntime(svc.Runtime)
+		service.Image = fmt.Sprintf("php:%s-fpm-alpine", phpVersion)
 	}
 
 	// Handle command
@@ -96,9 +100,12 @@ func configurePorts(service *DockerService, svc *Service) {
 // configureVolumes handles volume mounting logic
 func configureVolumes(service *DockerService, svc *Service, volumesNeeded map[string]bool) {
 	if svc.Folder != "" {
-		// If it's an nginx image with PHP runtime, set up for PHP
-		if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
-			// For PHP, nginx serves from /var/www/html
+		// Check if this is a PHP runtime service
+		if strings.HasPrefix(svc.Runtime, "php") {
+			// For PHP-FPM containers, mount to /var/www/html
+			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
+		} else if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
+			// Legacy: nginx image with PHP runtime
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
 			
 			// Auto-detect framework if not specified

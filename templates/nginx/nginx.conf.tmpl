@@ -91,6 +91,34 @@ http {
         }
         {{end}}
 
+        {{if .IsPHP}}
+        # PHP application configuration
+        {{if eq .Framework "laravel"}}
+        root /var/www/html/{{.Name}}/public;
+        {{else}}
+        root /var/www/html/{{.Name}};
+        {{end}}
+        index index.php index.html;
+        
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+        
+        location ~ \.php$ {
+            fastcgi_pass {{.Name}}:9000;
+            fastcgi_index index.php;
+            {{if eq .Framework "laravel"}}
+            fastcgi_param SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+            {{else}}
+            fastcgi_param SCRIPT_FILENAME /var/www/html$fastcgi_script_name;
+            {{end}}
+            include fastcgi_params;
+        }
+        
+        location ~ /\.ht {
+            deny all;
+        }
+        {{else}}
         location / {
             proxy_pass http://{{.Name}}_backend;
             proxy_set_header Host $host;
@@ -108,6 +136,7 @@ http {
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
         }
+        {{end}}
     }
     {{end}}{{end}}
 }

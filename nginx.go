@@ -26,6 +26,9 @@ type ServiceWithDomain struct {
 	CertPath         string
 	KeyPath          string
 	SanitizedDomain  string  // For certificate filenames
+	IsPHP            bool    // Flag to indicate if this is a PHP service
+	PHPVersion       string  // PHP version for FPM container name
+	Framework        string  // PHP framework (laravel, symfony, etc.)
 }
 
 // shouldAddNginxProxy checks if we need to add nginx proxy
@@ -100,6 +103,16 @@ func generateNginxConfig(config *Config) (string, error) {
 				Port:            port,
 				SSL:             svc.SSL,
 				SanitizedDomain: sanitizeDomainForFilename(domain),
+			}
+			
+			// Check if this is a PHP service
+			if strings.HasPrefix(svc.Runtime, "php") {
+				svcWithDomain.IsPHP = true
+				_, phpVersion := parsePHPRuntime(svc.Runtime)
+				svcWithDomain.PHPVersion = phpVersion
+				svcWithDomain.Framework = svc.Framework
+				// PHP-FPM listens on port 9000
+				svcWithDomain.Port = 9000
 			}
 			
 			// Set SSL port
@@ -199,6 +212,14 @@ func addNginxProxyToCompose(compose *DockerCompose, config *Config) {
 		sslDir := filepath.Join(cwd, ".fleet", "ssl")
 		if _, err := os.Stat(sslDir); err == nil {
 			volumes = append(volumes, fmt.Sprintf("%s:/etc/nginx/ssl:ro", sslDir))
+		}
+	}
+	
+	// Mount PHP application directories for serving static files
+	for _, svc := range config.Services {
+		if strings.HasPrefix(svc.Runtime, "php") && svc.Folder != "" && getDomainForService(&svc) != "" {
+			// Mount each PHP service folder to nginx
+			volumes = append(volumes, fmt.Sprintf("../%s:/var/www/html/%s", svc.Folder, svc.Name))
 		}
 	}
 	
