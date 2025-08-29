@@ -1,0 +1,41 @@
+# Fleet configuration for Express.js API
+# This example shows how to set up an Express.js API server with Fleet
+
+project = "express-api"
+
+[[services]]
+name = "api"
+runtime = "node:20"
+folder = "api"
+port = 3000
+framework = "express"  # Auto-detected if not specified
+node_env = "development"
+
+# Database for the API
+database = "postgres:15"
+database_name = "api_db"
+database_user = "api_user"
+database_password = "api_pass"
+
+# Redis for caching/sessions
+cache = "redis:7.2"
+cache_password = "redis_secret"
+
+# Environment variables
+[services.env]
+JWT_SECRET = "your-secret-key"
+API_VERSION = "v1"
+LOG_LEVEL = "debug"
+
+# Usage:
+# 1. Run: fleet up
+# 2. Access API at: http://localhost:3000
+# 3. Use fleet-node for package management:
+#    - fleet-node npm install
+#    - fleet-node npm run dev
+#    - fleet-node npm test
+#
+# The Node.js container will:
+# - Auto-install dependencies on startup
+# - Use nodemon for development (if configured in package.json)
+# - Mount node_modules as a volume for better performance

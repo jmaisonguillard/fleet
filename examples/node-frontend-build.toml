@@ -1,0 +1,56 @@
+# Fleet configuration for Frontend Build with Nginx
+# This example shows how to build a React/Vue/Angular app and serve it with Nginx
+
+project = "frontend-app"
+
+[[services]]
+name = "web"
+image = "nginx:alpine"
+folder = "frontend"
+domain = "app.test"
+port = 80
+
+# Node.js runtime for building the frontend
+runtime = "node:20"
+build_command = "npm run build"
+package_manager = "npm"  # Auto-detected from lock files if not specified
+
+# SSL support
+ssl = true
+ssl_port = 443
+
+# Environment variables for the build process
+[services.env]
+REACT_APP_API_URL = "https://api.example.com"
+VITE_API_ENDPOINT = "https://api.example.com"
+NODE_ENV = "production"
+
+# Optional: Backend API service
+[[services]]
+name = "api"
+runtime = "node:20"
+folder = "backend"
+port = 3001
+domain = "api.test"
+
+# Database for the API
+database = "postgres:15"
+database_name = "app_db"
+database_user = "app_user"
+database_password = "app_pass"
+
+# Usage:
+# 1. Run: fleet up
+# 2. Fleet will:
+#    - Create a Node.js container to build the frontend
+#    - Run npm install and npm run build
+#    - Copy the built files to nginx
+#    - Serve the static files via nginx
+# 3. Access the app at: https://app.test
+# 4. Access the API at: http://api.test:3001
+#
+# Build Mode Features:
+# - One-time build container that exits after build
+# - Built files are served by nginx for optimal performance
+# - Supports React, Vue, Angular, and other SPA frameworks
+# - Environment variables are injected during build

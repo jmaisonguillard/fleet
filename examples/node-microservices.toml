@@ -1,0 +1,111 @@
+# Fleet configuration for Node.js Microservices Architecture
+# This example shows multiple Node.js services working together
+
+project = "microservices"
+
+# API Gateway
+[[services]]
+name = "gateway"
+runtime = "node:20"
+folder = "gateway"
+port = 3000
+domain = "api.test"
+framework = "express"
+
+[services.env]
+AUTH_SERVICE_URL = "http://auth:3001"
+USER_SERVICE_URL = "http://users:3002"
+PRODUCT_SERVICE_URL = "http://products:3003"
+
+# Authentication Service
+[[services]]
+name = "auth"
+runtime = "node:20"
+folder = "services/auth"
+port = 3001
+framework = "express"
+
+# Dedicated Redis for sessions
+cache = "redis:7.2"
+cache_password = "auth_redis_secret"
+
+[services.env]
+JWT_SECRET = "super-secret-jwt-key"
+TOKEN_EXPIRY = "1h"
+
+# User Service
+[[services]]
+name = "users"
+runtime = "node:18"  # Different Node version example
+folder = "services/users"
+port = 3002
+framework = "fastify"
+
+# User database
+database = "postgres:15"
+database_name = "users_db"
+database_user = "users_service"
+database_password = "users_pass"
+
+# Product Service
+[[services]]
+name = "products"
+runtime = "node:20"
+folder = "services/products"
+port = 3003
+framework = "express"
+
+# Product database
+database = "mongodb:7"
+database_name = "products_db"
+
+# Search integration
+search = "meilisearch:1.6"
+search_master_key = "search_master_key"
+
+# Message Queue Service (using Node.js)
+[[services]]
+name = "queue"
+runtime = "node:20"
+folder = "services/queue"
+port = 3004
+
+[services.env]
+REDIS_URL = "redis://redis-72:6379"
+QUEUE_NAME = "task_queue"
+
+# Frontend Application
+[[services]]
+name = "frontend"
+runtime = "node:20"
+folder = "frontend"
+port = 3000
+domain = "app.test"
+framework = "nextjs"
+build_command = "npm run build"
+
+[services.env]
+NEXT_PUBLIC_API_URL = "http://api.test"
+
+# Shared Redis for general caching
+[[services]]
+name = "shared-cache"
+image = "redis:7.2-alpine"
+port = 6379
+
+# Usage:
+# 1. Run: fleet up
+# 2. Access:
+#    - Frontend: http://app.test
+#    - API Gateway: http://api.test
+# 3. Each service can be managed independently:
+#    - fleet-node --service=gateway npm install
+#    - fleet-node --service=auth npm test
+#    - fleet-node --service=products npm run dev
+#
+# Architecture Benefits:
+# - Each service can use different Node.js versions
+# - Independent scaling and deployment
+# - Service-specific databases and caches
+# - Shared resources where appropriate
+# - Easy local development of complex architectures

@@ -57,6 +57,9 @@ type Service struct {
 	Profile         bool          `toml:"profile,omitempty" yaml:"profile,omitempty" json:"profile,omitempty"`
 	ProfileTrigger  string        `toml:"profile_trigger,omitempty" yaml:"profile_trigger,omitempty" json:"profile_trigger,omitempty"`
 	ProfileOutput   string        `toml:"profile_output,omitempty" yaml:"profile_output,omitempty" json:"profile_output,omitempty"`
+	BuildCommand    string        `toml:"build_command,omitempty" yaml:"build_command,omitempty" json:"build_command,omitempty"`
+	PackageManager  string        `toml:"package_manager,omitempty" yaml:"package_manager,omitempty" json:"package_manager,omitempty"`
+	NodeEnv         string        `toml:"node_env,omitempty" yaml:"node_env,omitempty" json:"node_env,omitempty"`
 	DatabaseExtensions []string   `toml:"database_extensions,omitempty" yaml:"database_extensions,omitempty" json:"database_extensions,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`

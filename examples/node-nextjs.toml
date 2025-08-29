@@ -1,0 +1,48 @@
+# Fleet configuration for Next.js Full-Stack Application
+# This example shows how to set up a Next.js application with Fleet
+
+project = "nextjs-app"
+
+[[services]]
+name = "frontend"
+runtime = "node:20"
+folder = "frontend"
+port = 3000
+domain = "app.test"
+framework = "nextjs"
+node_env = "development"
+
+# Database for the application
+database = "mysql:8.0"
+database_name = "nextjs_db"
+database_user = "nextjs_user"
+database_password = "secure_password"
+
+# Redis for caching and sessions
+cache = "redis:7.2"
+
+# Environment variables for Next.js
+[services.env]
+NEXT_PUBLIC_API_URL = "http://app.test"
+DATABASE_URL = "mysql://nextjs_user:secure_password@mysql-80:3306/nextjs_db"
+NEXTAUTH_URL = "http://app.test"
+NEXTAUTH_SECRET = "your-nextauth-secret"
+
+# Optional: SSL support
+ssl = true
+ssl_port = 443
+
+# Usage:
+# 1. Run: fleet up
+# 2. Access app at: http://app.test (or https://app.test if SSL enabled)
+# 3. Use fleet-node for development:
+#    - fleet-node npm install
+#    - fleet-node npm run dev
+#    - fleet-node npm run build
+#    - fleet-node npm run start
+#
+# Features:
+# - Hot reload in development mode
+# - Automatic dependency installation
+# - Database and Redis integration
+# - SSL support for secure development

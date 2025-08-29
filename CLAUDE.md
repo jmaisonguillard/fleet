@@ -42,6 +42,8 @@ go test -v ./...
 go test -v -run TestComposeSuite ./...
 go test -v -run TestDNSSuite ./...
 go test -v -run TestPHPRuntimeSuite ./...
+go test -v -run TestNodeRuntimeSuite ./...
+go test -v -run TestNodeFrameworksSuite ./...
 go test -v -run TestDatabaseServicesSuite ./...
 go test -v -run TestNginxSuite ./...
 go test -v -run TestCacheServicesSuite ./...
@@ -188,6 +190,40 @@ The codebase includes comprehensive Docker mocking:
   - View profiles with KCacheGrind, QCacheGrind, or WebGrind
   - Can be used together with debugging
 
+### Node.js Runtime Support (`runtime_node.go`, `node_frameworks.go`, `node_configurator.go`)
+- **Auto-detection**: Detects Express, Next.js, Nuxt, Angular, React, Vue, Svelte, NestJS, Fastify, Remix
+- **Node versions**: 16, 18, 20, 22 (default: 20, LTS versions)
+- **Configuration**: `runtime = "node:20"` and optional `framework = "nextjs"`
+- **Two operational modes**:
+  - **Service mode**: Long-running Node.js services (APIs, servers)
+  - **Build mode**: One-time build containers for frontend compilation
+- **Package manager detection**: Auto-detects npm, yarn, or pnpm from lock files
+- **Container optimization**: 
+  - Service mode: Named volume for node_modules to improve performance
+  - Build mode: Builds assets and exits, served by nginx
+- **Framework-specific ports**:
+  - Next.js: 3000 (default)
+  - Angular: 4200
+  - Vue: 8080
+  - Express/others: 3000
+- **CLI tool**: `fleet-node` for running Node.js commands
+  - Package management: `fleet-node npm install`, `fleet-node yarn add`
+  - Framework commands: `fleet-node npm run dev`, `fleet-node npx`
+  - Multi-service support: `fleet-node --service=api npm test`
+- **Environment variables**:
+  - `node_env`: Set NODE_ENV (development/production)
+  - `build_command`: Custom build command for build mode
+  - `package_manager`: Override detected package manager
+- **Build mode configuration**: Use with nginx for static serving
+  ```toml
+  [[services]]
+  name = "frontend"
+  image = "nginx:alpine"      # Serve with nginx
+  runtime = "node:20"         # Build with Node.js
+  build_command = "npm run build"
+  folder = "frontend"
+  ```
+
 ### Database Services (`database_services.go`)
 - **Supported**: MySQL, PostgreSQL, MongoDB, MariaDB (not Redis - handled separately)
 - **Container sharing**: Services using same DB version share containers (e.g., all mysql:8.0 share one container)
@@ -221,6 +257,8 @@ type MyTestSuite struct {
 Run specific test suites:
 ```bash
 go test -v -run TestPHPRuntimeSuite ./...
+go test -v -run TestNodeRuntimeSuite ./...
+go test -v -run TestNodeFrameworksSuite ./...
 go test -v -run TestDatabaseServicesSuite ./...
 go test -v -run TestNginxSuite ./...
 ```

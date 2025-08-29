@@ -73,6 +73,10 @@ func buildServiceConfig(svc *Service) DockerService {
 		// For PHP runtime, create PHP-FPM container
 		_, phpVersion := parsePHPRuntime(svc.Runtime)
 		service.Image = fmt.Sprintf("php:%s-fpm-alpine", phpVersion)
+	} else if strings.HasPrefix(svc.Runtime, "node") {
+		// For Node.js runtime, create Node container
+		_, nodeVersion := parseNodeRuntime(svc.Runtime)
+		service.Image = getNodeImage(nodeVersion)
 	}
 
 	// Handle command
@@ -104,6 +108,15 @@ func configureVolumes(service *DockerService, svc *Service, volumesNeeded map[st
 		if strings.HasPrefix(svc.Runtime, "php") {
 			// For PHP-FPM containers, mount to /var/www/html
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
+		} else if strings.HasPrefix(svc.Runtime, "node") {
+			// For Node.js containers, mount to /app
+			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/app", svc.Folder))
+			// Add node_modules volume for better performance (only for service mode)
+			if !isNodeBuildMode(svc) {
+				volumeName := fmt.Sprintf("%s_node_modules", strings.ReplaceAll(svc.Name, "-", "_"))
+				service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/app/node_modules", volumeName))
+				volumesNeeded[volumeName] = true
+			}
 		} else if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
 			// Legacy: nginx image with PHP runtime
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
@@ -227,6 +240,14 @@ func addSupportServices(compose *DockerCompose, svc *Service, config *Config) {
 	// Add PHP-FPM service if this nginx service has PHP runtime
 	if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
 		addPHPFPMService(compose, svc, config)
+	}
+	
+	// Add Node.js service if specified
+	if strings.HasPrefix(svc.Runtime, "node") {
+		// For standalone Node.js services or build mode with nginx
+		if svc.Image == "" || (strings.Contains(strings.ToLower(svc.Image), "nginx") && svc.BuildCommand != "") {
+			addNodeService(compose, svc, config)
+		}
 	}
 	
 	// Add database service if specified
