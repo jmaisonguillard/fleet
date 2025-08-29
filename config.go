@@ -113,7 +113,14 @@ func validateConfig(config *Config) error {
 		if svc.Name == "" {
 			return fmt.Errorf("service #%d: name is required", i+1)
 		}
-		if svc.Image == "" && svc.Build == "" {
+		
+		// Check if this is a special service type that will have image set automatically
+		hasSpecialService := svc.Database != "" || svc.Cache != "" || 
+			svc.Search != "" || svc.Email != "" || svc.Compat != "" || 
+			svc.Runtime != ""
+		
+		// Regular services need either image or build
+		if !hasSpecialService && svc.Image == "" && svc.Build == "" {
 			return fmt.Errorf("service %s: either 'image' or 'build' is required", svc.Name)
 		}
 	}

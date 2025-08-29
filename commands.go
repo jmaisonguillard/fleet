@@ -209,6 +209,50 @@ func handleLogs() {
 	}
 }
 
+func handleInteractiveConfigure() {
+	// Check if fleet.toml already exists
+	if _, err := os.Stat("fleet.toml"); err == nil {
+		fmt.Println("⚠️  fleet.toml already exists!")
+		fmt.Print("   Do you want to overwrite it? (y/N): ")
+		
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("❌ Configuration cancelled")
+			os.Exit(0)
+		}
+	}
+
+	builder := NewInteractiveBuilder()
+	_, err := builder.Build()
+	if err != nil {
+		if err.Error() == "cancelled by user" {
+			os.Exit(0)
+		}
+		log.Fatalf("❌ Error building configuration: %v", err)
+	}
+
+	// Save the configuration
+	if err := builder.SaveConfig("fleet.toml"); err != nil {
+		log.Fatalf("❌ Error saving configuration: %v", err)
+	}
+
+	fmt.Println("\n✅ Configuration saved to fleet.toml")
+	fmt.Println("\n📄 Generated fleet.toml:")
+	fmt.Println("========================")
+	
+	// Display the generated config
+	data, err := ioutil.ReadFile("fleet.toml")
+	if err == nil {
+		fmt.Println(string(data))
+	}
+
+	fmt.Println("\n🚀 Next steps:")
+	fmt.Println("   1. Review the configuration above")
+	fmt.Println("   2. Run 'fleet up' to start your services")
+	fmt.Println("   3. Run 'fleet status' to check service status")
+}
+
 func handleInit() {
 	// Check if fleet.toml already exists
 	if _, err := os.Stat("fleet.toml"); err == nil {

@@ -29,6 +29,8 @@ func main() {
 		handleLogs()
 	case "init":
 		handleInit()
+	case "configure", "config":
+		handleInteractiveConfigure()
 	case "dns":
 		handleDNS()
 	case "version", "-v", "--version":
@@ -55,6 +57,7 @@ func printUsage() {
 	fmt.Fprintln(w, "  logs\t Show service logs")
 	fmt.Fprintln(w, "  dns\t Manage DNS service for .test domains")
 	fmt.Fprintln(w, "  init\t Create a sample fleet.toml")
+	fmt.Fprintln(w, "  configure\t Interactive configuration builder")
 	fmt.Fprintln(w, "  version\t Show version")
 	fmt.Fprintln(w, "  help\t Show this help")
 	w.Flush()
