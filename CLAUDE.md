@@ -165,17 +165,28 @@ The codebase includes comprehensive Docker mocking:
 
 ## Recent Major Features
 
-### PHP Runtime Support (`runtime_php.go`, `php_frameworks.go`)
+### PHP Runtime Support (`runtime_php.go`, `php_frameworks.go`, `php_configurator.go`)
 - **Auto-detection**: Detects Laravel, Symfony, WordPress, Drupal, CodeIgniter, Slim, Lumen
 - **PHP versions**: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4 (default: 8.4)
 - **Configuration**: `runtime = "php:8.4"` and optional `framework = "laravel"`
 - **Container naming**: Each service gets own PHP-FPM container (e.g., `web-php`)
 - **Nginx integration**: Auto-generates PHP-FPM nginx configs in `.fleet/`
 - **Framework configs**: Each framework gets specific nginx routing rules
+- **Composer support**: Automatically installed in all PHP containers
+  - CLI tool: `fleet-php composer install`, `fleet-php composer require`
+  - Framework commands: `fleet-php artisan` (Laravel), `fleet-php console` (Symfony)
 - **Xdebug support**: Enable with `debug = true` and optionally `debug_port = 9003`
   - Automatic Xdebug installation and configuration
   - IDE integration (PHPStorm, VSCode)
   - Configurable debug port (default: 9003)
+- **Profiler support**: Enable with `profile = true`
+  - Uses Xdebug profiler to generate cachegrind files
+  - Configuration options:
+    - `profile_trigger`: "request" (default) or "always"
+    - `profile_output`: Custom directory (default: `.fleet/profiles`)
+  - Request-based profiling: Add `XDEBUG_TRIGGER=PROFILE` to GET/POST/COOKIE
+  - View profiles with KCacheGrind, QCacheGrind, or WebGrind
+  - Can be used together with debugging
 
 ### Database Services (`database_services.go`)
 - **Supported**: MySQL, PostgreSQL, MongoDB, MariaDB (not Redis - handled separately)

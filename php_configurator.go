@@ -253,24 +253,54 @@ func (pc *PHPConfigurator) ConfigureXdebug(svc *Service) XdebugSettings {
 		debugPort = svc.DebugPort
 	}
 	
+	// Determine Xdebug mode based on debug and profile settings
+	mode := pc.xdebugConfig.Mode
+	if svc.Profile {
+		if svc.Debug {
+			// Both debug and profile enabled
+			mode = "develop,debug,coverage,profile"
+		} else {
+			// Only profile enabled
+			mode = "develop,profile"
+		}
+	}
+	
+	// Set profile trigger (default to "request" if not specified)
+	profileTrigger := svc.ProfileTrigger
+	if profileTrigger == "" && svc.Profile {
+		profileTrigger = "request"
+	}
+	
+	// Set profile output directory
+	profileOutput := svc.ProfileOutput
+	if profileOutput == "" && svc.Profile {
+		profileOutput = ".fleet/profiles"
+	}
+	
 	return XdebugSettings{
-		Port:       debugPort,
-		Mode:       pc.xdebugConfig.Mode,
-		Trigger:    pc.xdebugConfig.Trigger,
-		ClientHost: "host.docker.internal",
-		ServerName: svc.Name,
-		LogPath:    "/tmp/xdebug.log",
+		Port:           debugPort,
+		Mode:           mode,
+		Trigger:        pc.xdebugConfig.Trigger,
+		ClientHost:     "host.docker.internal",
+		ServerName:     svc.Name,
+		LogPath:        "/tmp/xdebug.log",
+		ProfileEnabled: svc.Profile,
+		ProfileTrigger: profileTrigger,
+		ProfileOutput:  profileOutput,
 	}
 }
 
 // XdebugSettings holds processed Xdebug configuration
 type XdebugSettings struct {
-	Port       int
-	Mode       string
-	Trigger    string
-	ClientHost string
-	ServerName string
-	LogPath    string
+	Port           int
+	Mode           string
+	Trigger        string
+	ClientHost     string
+	ServerName     string
+	LogPath        string
+	ProfileEnabled bool
+	ProfileTrigger string
+	ProfileOutput  string
 }
 
 // ApplyToService applies Xdebug settings to a Docker service
@@ -281,6 +311,17 @@ func (xs *XdebugSettings) ApplyToService(phpService *DockerService) {
 	phpService.Environment["XDEBUG_SESSION"] = "1"
 	phpService.Environment["PHP_IDE_CONFIG"] = fmt.Sprintf("serverName=%s", xs.ServerName)
 	phpService.Environment["XDEBUG_TRIGGER"] = xs.Trigger
+	
+	// Add profiler-specific environment variables if profiling is enabled
+	if xs.ProfileEnabled {
+		phpService.Environment["XDEBUG_PROFILER_OUTPUT_DIR"] = "/var/www/profiles"
+		if xs.ProfileTrigger == "request" {
+			phpService.Environment["XDEBUG_PROFILER_ENABLE_TRIGGER"] = "1"
+			phpService.Environment["XDEBUG_TRIGGER_VALUE"] = "PROFILE"
+		} else if xs.ProfileTrigger == "always" {
+			phpService.Environment["XDEBUG_PROFILER_ENABLE"] = "1"
+		}
+	}
 	
 	// Composer environment variables
 	phpService.Environment["COMPOSER_ALLOW_SUPERUSER"] = "1"
@@ -299,6 +340,24 @@ func (xs *XdebugSettings) ApplyToService(phpService *DockerService) {
 
 // generateInstallCommand generates the Xdebug installation command
 func (xs *XdebugSettings) generateInstallCommand() string {
+	profileConfig := ""
+	if xs.ProfileEnabled {
+		profileConfig = `
+			echo 'xdebug.output_dir=/var/www/profiles' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \`
+		if xs.ProfileTrigger == "request" {
+			profileConfig += `
+			echo 'xdebug.start_with_request=trigger' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
+			echo 'xdebug.trigger_value=PROFILE' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \`
+		} else if xs.ProfileTrigger == "always" {
+			profileConfig += `
+			echo 'xdebug.start_with_request=yes' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \`
+		}
+		// Ensure profiles directory exists
+		profileConfig += `
+			mkdir -p /var/www/profiles && \
+			chmod 777 /var/www/profiles && \`
+	}
+	
 	return fmt.Sprintf(`sh -c "
 		# Install Composer if not present
 		if ! command -v composer >/dev/null 2>&1; then
@@ -318,11 +377,11 @@ func (xs *XdebugSettings) generateInstallCommand() string {
 			echo 'xdebug.client_host=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
 			echo 'xdebug.client_port=%d' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
 			echo 'xdebug.start_with_request=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
-			echo 'xdebug.log=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini;
+			echo 'xdebug.log=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini%s;
 		fi;
 		
 		php-fpm
-	"`, xs.Mode, xs.ClientHost, xs.Port, xs.Trigger, xs.LogPath)
+	"`, xs.Mode, xs.ClientHost, xs.Port, xs.Trigger, xs.LogPath, profileConfig)
 }
 
 // BuildPHPService builds a complete PHP-FPM service configuration
@@ -360,10 +419,20 @@ func (pc *PHPConfigurator) BuildPHPService(svc *Service) *DockerService {
 	// Add framework-specific environment variables
 	pc.configureFrameworkEnvironment(phpService, framework)
 	
-	// Configure Xdebug if enabled
-	if svc.Debug {
+	// Configure Xdebug and/or profiler if enabled
+	if svc.Debug || svc.Profile {
 		xdebugSettings := pc.ConfigureXdebug(svc)
 		xdebugSettings.ApplyToService(phpService)
+		
+		// Add profile volume mount if profiling is enabled
+		if svc.Profile {
+			profileOutput := svc.ProfileOutput
+			if profileOutput == "" {
+				profileOutput = ".fleet/profiles"
+			}
+			// Ensure the directory is created relative to the compose file
+			phpService.Volumes = append(phpService.Volumes, fmt.Sprintf("../%s:/var/www/profiles", profileOutput))
+		}
 	} else {
 		// Install Composer by default for all PHP containers
 		pc.installComposer(phpService)

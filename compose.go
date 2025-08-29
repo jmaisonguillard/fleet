@@ -295,6 +295,18 @@ func generateDockerCompose(config *Config) *DockerCompose {
 	// Ensure .fleet directory exists for generated configs
 	os.MkdirAll(".fleet", 0755)
 	
+	// Create profiles directory if any service has profiling enabled
+	for _, svc := range config.Services {
+		if svc.Profile {
+			profileDir := svc.ProfileOutput
+			if profileDir == "" {
+				profileDir = ".fleet/profiles"
+			}
+			os.MkdirAll(profileDir, 0755)
+			break
+		}
+	}
+	
 	compose := &DockerCompose{
 		Version:  "3.8",
 		Services: make(map[string]DockerService),

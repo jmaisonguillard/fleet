@@ -1,0 +1,51 @@
+# Fleet configuration example for PHP with Xdebug Profiler
+# This example shows how to enable profiling for PHP applications
+
+project = "php-profiler-demo"
+
+[[services]]
+name = "web"
+image = "nginx:alpine"
+domain = "profiler.test"
+runtime = "php:8.4"
+folder = "app"
+port = 80
+
+# Enable Xdebug profiler
+profile = true
+
+# Profile trigger mode (optional)
+# - "request": Profile only when XDEBUG_TRIGGER=PROFILE is present (default)
+# - "always": Profile every request (heavy performance impact)
+profile_trigger = "request"
+
+# Custom profile output directory (optional)
+# Default: .fleet/profiles
+profile_output = "profiles"
+
+# You can also enable debugging alongside profiling
+debug = true
+debug_port = 9003
+
+# Database for the application
+database = "mysql:8.0"
+database_name = "profiler_demo"
+database_user = "demo_user"
+database_password = "demo_pass"
+
+# Environment variables
+[services.env]
+APP_ENV = "development"
+APP_DEBUG = "true"
+
+# Usage:
+# 1. Run: fleet up
+# 2. For request-based profiling, add to your request:
+#    - Query parameter: ?XDEBUG_TRIGGER=PROFILE
+#    - POST data: XDEBUG_TRIGGER=PROFILE
+#    - Cookie: XDEBUG_TRIGGER=PROFILE
+# 3. Profile files will be generated in the profiles/ directory
+# 4. View with KCacheGrind (Linux), QCacheGrind (Mac/Windows), or WebGrind (web)
+#
+# Profile file format: cachegrind.out.{pid}
+# Each request generates a new profile file

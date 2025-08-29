@@ -54,6 +54,9 @@ type Service struct {
 	SSLPort         int           `toml:"ssl_port,omitempty" yaml:"ssl_port,omitempty" json:"ssl_port,omitempty"`
 	Debug           bool          `toml:"debug,omitempty" yaml:"debug,omitempty" json:"debug,omitempty"`
 	DebugPort       int           `toml:"debug_port,omitempty" yaml:"debug_port,omitempty" json:"debug_port,omitempty"`
+	Profile         bool          `toml:"profile,omitempty" yaml:"profile,omitempty" json:"profile,omitempty"`
+	ProfileTrigger  string        `toml:"profile_trigger,omitempty" yaml:"profile_trigger,omitempty" json:"profile_trigger,omitempty"`
+	ProfileOutput   string        `toml:"profile_output,omitempty" yaml:"profile_output,omitempty" json:"profile_output,omitempty"`
 	DatabaseExtensions []string   `toml:"database_extensions,omitempty" yaml:"database_extensions,omitempty" json:"database_extensions,omitempty"`
 	Environment map[string]string `toml:"env,omitempty" yaml:"env,omitempty" json:"env,omitempty"`
 	Volumes     []string          `toml:"volumes,omitempty" yaml:"volumes,omitempty" json:"volumes,omitempty"`
