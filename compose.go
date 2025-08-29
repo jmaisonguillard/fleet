@@ -74,9 +74,14 @@ func buildServiceConfig(svc *Service) DockerService {
 		_, phpVersion := parsePHPRuntime(svc.Runtime)
 		service.Image = fmt.Sprintf("php:%s-fpm-alpine", phpVersion)
 	} else if strings.HasPrefix(svc.Runtime, "node") {
-		// For Node.js runtime, create Node container
-		_, nodeVersion := parseNodeRuntime(svc.Runtime)
-		service.Image = getNodeImage(nodeVersion)
+		// For standalone Node.js runtime (no image specified), don't set anything here
+		// The complete service will be created by addNodeService
+		if svc.Image == "" {
+			// Return minimal service that will be replaced by addNodeService
+			return service
+		}
+		// For Node.js with nginx (build mode), keep the nginx image
+		service.Image = svc.Image
 	}
 
 	// Handle command
@@ -104,12 +109,44 @@ func configurePorts(service *DockerService, svc *Service) {
 // configureVolumes handles volume mounting logic
 func configureVolumes(service *DockerService, svc *Service, volumesNeeded map[string]bool) {
 	if svc.Folder != "" {
-		// Check if this is a PHP runtime service
-		if strings.HasPrefix(svc.Runtime, "php") {
-			// For PHP-FPM containers, mount to /var/www/html
+		// Check nginx first (for both PHP and Node.js build mode)
+		if strings.Contains(strings.ToLower(svc.Image), "nginx") {
+			if strings.HasPrefix(svc.Runtime, "php") {
+				// nginx with PHP runtime
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
+				
+				// Auto-detect framework if not specified
+				framework := svc.Framework
+				if framework == "" {
+					framework = detectPHPFramework(svc.Folder)
+				}
+				
+				// Parse PHP version from runtime
+				_, phpVersion := parsePHPRuntime(svc.Runtime)
+				
+				// Generate and mount PHP nginx config with version
+				configPath, err := writeNginxPHPConfigWithVersion(svc.Name, framework, phpVersion)
+				if err == nil {
+					absPath, _ := filepath.Abs(configPath)
+					service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/etc/nginx/conf.d/default.conf:ro", absPath))
+				}
+			} else if strings.HasPrefix(svc.Runtime, "node") && svc.BuildCommand != "" {
+				// nginx with Node.js runtime (build mode) - serve the build output
+				framework := detectNodeFramework(svc.Folder)
+				buildDir := "build" // Default for React, Create React App
+				if framework == "vue" || framework == "nuxt" {
+					buildDir = "dist"
+				}
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s/%s:/usr/share/nginx/html", svc.Folder, buildDir))
+			} else {
+				// Regular nginx service
+				service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/usr/share/nginx/html", svc.Folder))
+			}
+		} else if strings.HasPrefix(svc.Runtime, "php") {
+			// Standalone PHP-FPM containers, mount to /var/www/html
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
 		} else if strings.HasPrefix(svc.Runtime, "node") {
-			// For Node.js containers, mount to /app
+			// Standalone Node.js containers, mount to /app
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/app", svc.Folder))
 			// Add node_modules volume for better performance (only for service mode)
 			if !isNodeBuildMode(svc) {
@@ -117,28 +154,6 @@ func configureVolumes(service *DockerService, svc *Service, volumesNeeded map[st
 				service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/app/node_modules", volumeName))
 				volumesNeeded[volumeName] = true
 			}
-		} else if strings.Contains(strings.ToLower(svc.Image), "nginx") && strings.HasPrefix(svc.Runtime, "php") {
-			// Legacy: nginx image with PHP runtime
-			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/var/www/html", svc.Folder))
-			
-			// Auto-detect framework if not specified
-			framework := svc.Framework
-			if framework == "" {
-				framework = detectPHPFramework(svc.Folder)
-			}
-			
-			// Parse PHP version from runtime
-			_, phpVersion := parsePHPRuntime(svc.Runtime)
-			
-			// Generate and mount PHP nginx config with version
-			configPath, err := writeNginxPHPConfigWithVersion(svc.Name, framework, phpVersion)
-			if err == nil {
-				absPath, _ := filepath.Abs(configPath)
-				service.Volumes = append(service.Volumes, fmt.Sprintf("%s:/etc/nginx/conf.d/default.conf:ro", absPath))
-			}
-		} else if strings.Contains(strings.ToLower(svc.Image), "nginx") {
-			// Regular nginx service
-			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/usr/share/nginx/html", svc.Folder))
 		} else {
 			// For other images, map to /app
 			service.Volumes = append(service.Volumes, fmt.Sprintf("../%s:/app", svc.Folder))
@@ -244,8 +259,12 @@ func addSupportServices(compose *DockerCompose, svc *Service, config *Config) {
 	
 	// Add Node.js service if specified
 	if strings.HasPrefix(svc.Runtime, "node") {
-		// For standalone Node.js services or build mode with nginx
-		if svc.Image == "" || (strings.Contains(strings.ToLower(svc.Image), "nginx") && svc.BuildCommand != "") {
+		// For standalone Node.js services (no image specified) or build mode with nginx
+		if svc.Image == "" {
+			// For standalone Node.js, we need to replace the basic service with a fully configured one
+			addNodeService(compose, svc, config)
+		} else if strings.Contains(strings.ToLower(svc.Image), "nginx") && svc.BuildCommand != "" {
+			// For nginx with Node.js build, add a separate build container
 			addNodeService(compose, svc, config)
 		}
 	}

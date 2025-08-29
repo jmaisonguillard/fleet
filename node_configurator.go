@@ -284,13 +284,35 @@ func (nc *NodeConfigurator) getBuildCommand(folder string, packageManager string
 
 // getStartCommand returns the start command for the project
 func (nc *NodeConfigurator) getStartCommand(folder string, packageManager string, framework string, isDev bool) string {
-	// First check package.json for start script
-	if cmd := getStartScriptFromPackageJSON(folder); cmd != "" {
-		return nc.wrapWithPackageManager(cmd, packageManager)
+	// Check if package.json has the appropriate script
+	pkg, _ := getPackageJSON(folder)
+	if pkg != nil && pkg.Scripts != nil {
+		// For development mode, prefer dev script
+		if isDev {
+			if _, ok := pkg.Scripts["dev"]; ok {
+				return nc.getPackageManagerRunCommand(packageManager, "dev")
+			}
+		}
+		// For production or if no dev script, use start
+		if _, ok := pkg.Scripts["start"]; ok {
+			return nc.getPackageManagerRunCommand(packageManager, "start")
+		}
 	}
 	
 	// Use framework-specific command
 	return getFrameworkCommand(framework, packageManager, isDev)
+}
+
+// getPackageManagerRunCommand returns the command to run a script with the package manager
+func (nc *NodeConfigurator) getPackageManagerRunCommand(packageManager string, scriptName string) string {
+	switch packageManager {
+	case "yarn":
+		return "yarn " + scriptName
+	case "pnpm":
+		return "pnpm " + scriptName
+	default:
+		return "npm run " + scriptName
+	}
 }
 
 // wrapWithPackageManager wraps a script command with the appropriate package manager
