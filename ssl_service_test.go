@@ -16,6 +16,12 @@ type SSLServiceSuite struct {
 
 func (suite *SSLServiceSuite) SetupTest() {
 	suite.helper = NewTestHelper(suite.T())
+	// Change to temp directory to isolate test
+	originalDir, _ := os.Getwd()
+	os.Chdir(suite.helper.tempDir)
+	suite.T().Cleanup(func() {
+		os.Chdir(originalDir)
+	})
 }
 
 func (suite *SSLServiceSuite) TearDownTest() {
