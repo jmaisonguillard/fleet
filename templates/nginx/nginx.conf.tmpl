@@ -93,8 +93,10 @@ http {
 
         {{if .IsPHP}}
         # PHP application configuration
-        {{if eq .Framework "laravel"}}
+        {{if or (eq .Framework "laravel") (eq .Framework "lumen") (eq .Framework "symfony") (eq .Framework "codeigniter") (eq .Framework "slim")}}
         root /var/www/html/{{.Name}}/public;
+        {{else if eq .Framework "drupal"}}
+        root /var/www/html/{{.Name}}/web;
         {{else}}
         root /var/www/html/{{.Name}};
         {{end}}
@@ -107,8 +109,10 @@ http {
         location ~ \.php$ {
             fastcgi_pass {{.Name}}:9000;
             fastcgi_index index.php;
-            {{if eq .Framework "laravel"}}
+            {{if or (eq .Framework "laravel") (eq .Framework "lumen") (eq .Framework "symfony") (eq .Framework "codeigniter") (eq .Framework "slim")}}
             fastcgi_param SCRIPT_FILENAME /var/www/html/public$fastcgi_script_name;
+            {{else if eq .Framework "drupal"}}
+            fastcgi_param SCRIPT_FILENAME /var/www/html/web$fastcgi_script_name;
             {{else}}
             fastcgi_param SCRIPT_FILENAME /var/www/html$fastcgi_script_name;
             {{end}}
