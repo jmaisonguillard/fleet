@@ -8,6 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	
+	"github.com/BurntSushi/toml"
+	"gopkg.in/yaml.v3"
 )
 
 const version = "1.0.0"
@@ -156,16 +159,22 @@ func loadConfigFile(filename string) (*Config, error) {
 
 	config := &Config{}
 	
-	// For simplicity, we'll only handle JSON format in fleet-php
-	// The main fleet binary handles all formats
-	if strings.HasSuffix(filename, ".json") {
-		if err := json.Unmarshal(data, config); err != nil {
-			return nil, err
+	// Handle different config formats
+	switch {
+	case strings.HasSuffix(filename, ".toml"):
+		if err := toml.Unmarshal(data, config); err != nil {
+			return nil, fmt.Errorf("failed to parse TOML: %w", err)
 		}
-	} else {
-		// For TOML/YAML, we'll need to call the main fleet binary
-		// or add dependencies. For now, return an error.
-		return nil, fmt.Errorf("fleet-php currently only supports JSON config. Please use main fleet CLI")
+	case strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml"):
+		if err := yaml.Unmarshal(data, config); err != nil {
+			return nil, fmt.Errorf("failed to parse YAML: %w", err)
+		}
+	case strings.HasSuffix(filename, ".json"):
+		if err := json.Unmarshal(data, config); err != nil {
+			return nil, fmt.Errorf("failed to parse JSON: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported config format: %s", filename)
 	}
 	
 	return config, nil
@@ -174,11 +183,17 @@ func loadConfigFile(filename string) (*Config, error) {
 func detectPHPServices(config *Config) []PHPService {
 	var services []PHPService
 	
+	// Docker Compose uses "fleet" as the default project name for Fleet
+	// regardless of the config project name
+	projectName := "fleet"
+	
 	for _, svc := range config.Services {
 		if strings.HasPrefix(svc.Runtime, "php") {
+			// Container naming follows pattern: fleet-{service}-1
+			// PHP services don't have "-php" suffix in the container name
 			phpSvc := PHPService{
 				Name:          svc.Name,
-				ContainerName: fmt.Sprintf("%s-%s-php", config.Project, svc.Name),
+				ContainerName: fmt.Sprintf("%s-%s-1", projectName, svc.Name),
 				Framework:     svc.Framework,
 				Folder:        svc.Folder,
 			}
@@ -230,11 +245,11 @@ func isSymfonyService(service *PHPService) bool {
 func executeComposer(service *PHPService, args []string) {
 	dockerArgs := []string{
 		"exec",
-		"-w", "/app",
+		"-w", "/var/www/html",
 	}
 	
-	// Add TTY if available
-	if isTerminal() {
+	// Add TTY if available and not just checking version/help
+	if isTerminal() && !isInfoCommand(args) {
 		dockerArgs = append(dockerArgs, "-it")
 	}
 	
@@ -244,14 +259,28 @@ func executeComposer(service *PHPService, args []string) {
 	runDockerCommand(dockerArgs)
 }
 
+// isInfoCommand checks if the command is just for information (doesn't need TTY)
+func isInfoCommand(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	infoCommands := []string{"--version", "-V", "-v", "--help", "-h", "list", "about", "-i", "--info"}
+	for _, cmd := range infoCommands {
+		if args[0] == cmd {
+			return true
+		}
+	}
+	return false
+}
+
 func executePHP(service *PHPService, args []string) {
 	dockerArgs := []string{
 		"exec",
-		"-w", "/app",
+		"-w", "/var/www/html",
 	}
 	
-	// Add TTY if available
-	if isTerminal() {
+	// Add TTY if available and not just checking version/info
+	if isTerminal() && !isInfoCommand(args) {
 		dockerArgs = append(dockerArgs, "-it")
 	}
 	
@@ -264,7 +293,7 @@ func executePHP(service *PHPService, args []string) {
 func executeArtisan(service *PHPService, args []string) {
 	dockerArgs := []string{
 		"exec",
-		"-w", "/app",
+		"-w", "/var/www/html",
 	}
 	
 	// Add TTY if available
@@ -281,7 +310,7 @@ func executeArtisan(service *PHPService, args []string) {
 func executeConsole(service *PHPService, args []string) {
 	dockerArgs := []string{
 		"exec",
-		"-w", "/app",
+		"-w", "/var/www/html",
 	}
 	
 	// Add TTY if available

@@ -282,6 +282,10 @@ func (xs *XdebugSettings) ApplyToService(phpService *DockerService) {
 	phpService.Environment["PHP_IDE_CONFIG"] = fmt.Sprintf("serverName=%s", xs.ServerName)
 	phpService.Environment["XDEBUG_TRIGGER"] = xs.Trigger
 	
+	// Composer environment variables
+	phpService.Environment["COMPOSER_ALLOW_SUPERUSER"] = "1"
+	phpService.Environment["COMPOSER_HOME"] = "/var/www/.composer"
+	
 	// Install Xdebug command
 	installCmd := xs.generateInstallCommand()
 	phpService.Command = installCmd
@@ -296,6 +300,15 @@ func (xs *XdebugSettings) ApplyToService(phpService *DockerService) {
 // generateInstallCommand generates the Xdebug installation command
 func (xs *XdebugSettings) generateInstallCommand() string {
 	return fmt.Sprintf(`sh -c "
+		# Install Composer if not present
+		if ! command -v composer >/dev/null 2>&1; then
+			echo 'Installing Composer...';
+			curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+			chmod +x /usr/local/bin/composer && \
+			echo 'Composer installed successfully';
+		fi;
+		
+		# Install Xdebug if not present
 		if ! php -m | grep -q xdebug; then
 			echo 'Installing Xdebug...';
 			apk add --no-cache $PHPIZE_DEPS && \
@@ -307,6 +320,7 @@ func (xs *XdebugSettings) generateInstallCommand() string {
 			echo 'xdebug.start_with_request=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini && \
 			echo 'xdebug.log=%s' >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini;
 		fi;
+		
 		php-fpm
 	"`, xs.Mode, xs.ClientHost, xs.Port, xs.Trigger, xs.LogPath)
 }
@@ -350,6 +364,9 @@ func (pc *PHPConfigurator) BuildPHPService(svc *Service) *DockerService {
 	if svc.Debug {
 		xdebugSettings := pc.ConfigureXdebug(svc)
 		xdebugSettings.ApplyToService(phpService)
+	} else {
+		// Install Composer by default for all PHP containers
+		pc.installComposer(phpService)
 	}
 	
 	// Add custom environment variables
@@ -420,4 +437,24 @@ func (pc *PHPConfigurator) GetSupportedFrameworks() []string {
 		frameworks = append(frameworks, framework)
 	}
 	return frameworks
+}
+
+// installComposer configures the PHP service to install Composer
+func (pc *PHPConfigurator) installComposer(phpService *DockerService) {
+	// Command to install Composer and then start PHP-FPM
+	installCmd := `sh -c "
+		if ! command -v composer >/dev/null 2>&1; then
+			echo 'Installing Composer...';
+			curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer && \
+			chmod +x /usr/local/bin/composer && \
+			echo 'Composer installed successfully';
+		fi;
+		php-fpm
+	"`
+	
+	phpService.Command = installCmd
+	
+	// Add Composer environment variables
+	phpService.Environment["COMPOSER_ALLOW_SUPERUSER"] = "1"
+	phpService.Environment["COMPOSER_HOME"] = "/var/www/.composer"
 }
