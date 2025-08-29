@@ -1,0 +1,89 @@
+# Fleet Node.js Runtime Test Configuration
+# This configuration tests various Node.js frameworks and modes
+
+project = "node-test"
+
+# Express API Service (Service Mode - Long Running)
+[[services]]
+name = "api"
+runtime = "node:20"
+folder = "express-api"
+port = 3000
+domain = "api.test"
+framework = "express"
+node_env = "development"
+
+# Database for API
+database = "postgres:15"
+database_name = "api_db"
+database_user = "api_user" 
+database_password = "api_pass"
+
+# Redis cache for API
+cache = "redis:7.2"
+
+[services.env]
+JWT_SECRET = "test-secret-key"
+CORS_ORIGIN = "http://localhost:3001"
+
+# Next.js Application (Service Mode)
+[[services]]
+name = "nextjs"
+runtime = "node:20"
+folder = "nextjs-app"
+port = 3001
+domain = "next.test"
+framework = "nextjs"
+node_env = "development"
+
+[services.env]
+NEXT_PUBLIC_API_URL = "http://api.test:3000"
+NEXTAUTH_URL = "http://next.test:3001"
+NEXTAUTH_SECRET = "nextauth-secret"
+
+# React Frontend (Build Mode with Nginx)
+[[services]]
+name = "react"
+image = "nginx:alpine"
+runtime = "node:20"
+folder = "react-frontend" 
+build_command = "npm run build"
+port = 80
+domain = "react.test"
+ssl = true
+ssl_port = 443
+
+[services.env]
+REACT_APP_API_URL = "http://api.test:3000"
+REACT_APP_TITLE = "Fleet React Test"
+
+# Vue.js Application (Service Mode for Development)
+[[services]]
+name = "vue"
+runtime = "node:18"  # Test different Node version
+folder = "vue-app"
+port = 8080
+domain = "vue.test"
+framework = "vue"
+node_env = "development"
+
+[services.env]
+VUE_APP_API_URL = "http://api.test:3000"
+VUE_APP_TITLE = "Fleet Vue Test"
+
+# Shared Email Service for testing
+[[services]]
+name = "mail"
+email = "mailpit:1.20"
+email_smtp_port = 1025
+email_ui_port = 8025
+
+# Test scenarios covered:
+# 1. Express API - Service mode with database and cache
+# 2. Next.js - Service mode with SSR/SSG support
+# 3. React - Build mode (builds and serves with nginx)
+# 4. Vue - Service mode with different Node version
+# 5. Integration with database, cache, and email services
+# 6. Multiple domains with SSL support
+# 7. Environment variable configuration
+# 8. Framework auto-detection
