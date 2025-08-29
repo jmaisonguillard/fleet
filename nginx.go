@@ -13,6 +13,7 @@ import (
 // NginxConfig represents the nginx configuration
 type NginxConfig struct {
 	Services []ServiceWithDomain
+	HasSSL   bool // Flag to indicate if any service has SSL enabled
 }
 
 // ServiceWithDomain represents a service with domain configuration
@@ -75,8 +76,13 @@ func generateNginxConfig(config *Config) (string, error) {
 	for _, svc := range config.Services {
 		domain := getDomainForService(&svc)
 		if domain != "" {
+			// Determine the internal port for the proxy connection
 			port := svc.Port
-			if port == 0 && len(svc.Ports) > 0 {
+			
+			// For nginx images, always use port 80 internally
+			if strings.Contains(strings.ToLower(svc.Image), "nginx") {
+				port = 80
+			} else if port == 0 && len(svc.Ports) > 0 {
 				// Extract port from first port mapping
 				// Format can be: "8080:80", "127.0.0.1:8080:80", or "8080:80/tcp"
 				parts := strings.Split(svc.Ports[0], ":")
@@ -115,7 +121,10 @@ func generateNginxConfig(config *Config) (string, error) {
 
 	// Execute template
 	var buf bytes.Buffer
-	nginxConfig := NginxConfig{Services: services}
+	nginxConfig := NginxConfig{
+		Services: services,
+		HasSSL:   hasSSLServices(config),
+	}
 	if err := tmpl.Execute(&buf, nginxConfig); err != nil {
 		return "", fmt.Errorf("failed to execute nginx template: %w", err)
 	}
@@ -287,9 +296,9 @@ func updateHostsFileWithDomains(config *Config) error {
 		newLines = append(newLines, "# Fleet Services - END")
 	}
 
-	// Write back to hosts file
+	// Write back to hosts file with privilege elevation if needed
 	newContent := strings.Join(newLines, "\n")
-	if err := os.WriteFile(hostsFile, []byte(newContent), 0644); err != nil {
+	if err := WriteFileWithPrivileges(hostsFile, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("failed to write hosts file: %w", err)
 	}
 
@@ -324,5 +333,5 @@ func removeDomainsFromHostsFile() error {
 	}
 
 	newContent := strings.Join(newLines, "\n")
-	return os.WriteFile(hostsFile, []byte(newContent), 0644)
+	return WriteFileWithPrivileges(hostsFile, []byte(newContent), 0644)
 }

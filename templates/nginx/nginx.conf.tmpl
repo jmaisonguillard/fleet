@@ -39,13 +39,13 @@ http {
     # Default server to catch undefined hosts
     server {
         listen 80 default_server;
-        listen 443 ssl default_server;
+        {{if .HasSSL}}listen 443 ssl default_server;{{end}}
         server_name _;
         
-        # Use a self-signed cert for default server (to handle SSL handshake)
+        {{if .HasSSL}}# Use a self-signed cert for default server (to handle SSL handshake)
         ssl_certificate /etc/nginx/ssl/default.crt;
         ssl_certificate_key /etc/nginx/ssl/default.key;
-        
+        {{end}}
         return 444;
     }
 

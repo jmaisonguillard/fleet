@@ -72,28 +72,25 @@ func handleDNSSetup() {
 		log.Fatal("❌ Setup script not found")
 	}
 
-	var cmd *exec.Cmd
+	var op PrivilegedOperation
 	if runtime.GOOS == "windows" {
 		// Use PowerShell on Windows
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "setup")
+		op = PrivilegedOperation{
+			Description: "DNS setup",
+			Command:     "powershell",
+			Args:        []string{"-ExecutionPolicy", "Bypass", "-File", scriptPath, "setup"},
+		}
 	} else {
 		// Use bash script on Unix-like systems
-		cmd = exec.Command(scriptPath)
+		op = PrivilegedOperation{
+			Description: "DNS setup",
+			Command:     scriptPath,
+			Args:        []string{},
+		}
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
-		if runtime.GOOS != "windows" {
-			fmt.Println("\n⚠️  DNS setup requires administrative privileges")
-			fmt.Println("   Please run with sudo: sudo fleet dns setup")
-		} else {
-			fmt.Println("\n⚠️  DNS setup requires Administrator privileges")
-			fmt.Println("   Please run PowerShell as Administrator")
-		}
-		os.Exit(1)
+	if err := RunWithPrivileges(op); err != nil {
+		log.Fatalf("❌ DNS setup failed: %v", err)
 	}
 
 	fmt.Println("✅ DNS setup complete")
@@ -287,28 +284,25 @@ func handleDNSRemove() {
 		log.Fatal("❌ Setup script not found")
 	}
 
-	var cmd *exec.Cmd
+	var op PrivilegedOperation
 	if runtime.GOOS == "windows" {
 		// Use PowerShell on Windows
-		cmd = exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", scriptPath, "remove")
+		op = PrivilegedOperation{
+			Description: "DNS removal",
+			Command:     "powershell",
+			Args:        []string{"-ExecutionPolicy", "Bypass", "-File", scriptPath, "remove"},
+		}
 	} else {
 		// Use bash script on Unix-like systems
-		cmd = exec.Command(scriptPath, "remove")
+		op = PrivilegedOperation{
+			Description: "DNS removal",
+			Command:     scriptPath,
+			Args:        []string{"remove"},
+		}
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	if err := cmd.Run(); err != nil {
-		if runtime.GOOS != "windows" {
-			fmt.Println("\n⚠️  DNS removal requires administrative privileges")
-			fmt.Println("   Please run with sudo: sudo fleet dns remove")
-		} else {
-			fmt.Println("\n⚠️  DNS removal requires Administrator privileges")
-			fmt.Println("   Please run PowerShell as Administrator")
-		}
-		os.Exit(1)
+	if err := RunWithPrivileges(op); err != nil {
+		log.Fatalf("❌ DNS removal failed: %v", err)
 	}
 
 	fmt.Println("✅ DNS configuration removed")
