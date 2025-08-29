@@ -1,7 +1,8 @@
-.PHONY: build build-all clean deps install uninstall test dev
+.PHONY: build build-all build-fleet-php clean deps install uninstall test dev
 
 # Binary name
 BINARY_NAME=fleet
+PHP_BINARY_NAME=fleet-php
 BUILD_DIR=build
 
 # Go parameters
@@ -20,6 +21,14 @@ build:
 	@mkdir -p $(BUILD_DIR)
 	@$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) .
 	@echo "✅ Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
+	@$(MAKE) build-fleet-php
+
+# Build fleet-php binary
+build-fleet-php:
+	@echo "🔨 Building fleet-php binary..."
+	@mkdir -p $(BUILD_DIR)
+	@$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME) ./cmd/fleet-php
+	@echo "✅ PHP binary built: $(BUILD_DIR)/$(PHP_BINARY_NAME)"
 
 # Build for multiple platforms
 build-all:
@@ -27,14 +36,19 @@ build-all:
 	@mkdir -p $(BUILD_DIR)
 	# Linux AMD64
 	@GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
+	@GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME)-linux-amd64 ./cmd/fleet-php
 	# Linux ARM64
 	@GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 .
+	@GOOS=linux GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME)-linux-arm64 ./cmd/fleet-php
 	# macOS AMD64
 	@GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 .
+	@GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME)-darwin-amd64 ./cmd/fleet-php
 	# macOS ARM64 (M1/M2)
 	@GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 .
+	@GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME)-darwin-arm64 ./cmd/fleet-php
 	# Windows AMD64
 	@GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
+	@GOOS=windows GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(PHP_BINARY_NAME)-windows-amd64.exe ./cmd/fleet-php
 	@echo "✅ All binaries built in $(BUILD_DIR)/"
 
 clean:

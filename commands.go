@@ -69,6 +69,31 @@ func handleUp() {
 		log.Fatalf("❌ Error starting services: %v", err)
 	}
 
+	// Check for PHP services and deploy fleet-php if needed
+	phpManager := NewPHPRuntimeManager(config)
+	if phpManager.HasPHPServices() {
+		deployer := NewBinaryDeployer()
+		if err := deployer.DeployPHPBinary(); err != nil {
+			fmt.Printf("⚠️  Warning: failed to deploy fleet-php: %v\n", err)
+		} else {
+			fmt.Println("📦 PHP project detected, fleet-php CLI deployed")
+			
+			// Check for services needing composer install
+			servicesNeedingComposer := phpManager.GetServicesNeedingComposerInstall()
+			for _, svc := range servicesNeedingComposer {
+				fmt.Printf("📦 Running composer install for service '%s'...\n", svc.Name)
+				if err := phpManager.RunComposerInstall(&svc); err != nil {
+					fmt.Printf("⚠️  Warning: composer install failed for '%s': %v\n", svc.Name, err)
+				} else {
+					fmt.Printf("✅ Dependencies installed for '%s'\n", svc.Name)
+				}
+			}
+			
+			// Print usage instructions
+			deployer.PrintUsageInstructions()
+		}
+	}
+
 	if *detach {
 		fmt.Println("✅ Services started in background")
 		fmt.Println("   Run 'fleet status' to check service status")
